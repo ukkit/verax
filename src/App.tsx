@@ -1,6 +1,5 @@
 import { useState } from 'preact/hooks';
 import type { Statement } from './parser/types';
-import { NavLookup } from './ui/NavLookup';
 import { ProfileView } from './ui/ProfileView';
 import { UnlockScreen } from './ui/UnlockScreen';
 import { UploadForm } from './ui/UploadForm';
@@ -89,7 +88,6 @@ export function App() {
         )}
         {!locked && vault.status !== 'checking' && (adding || !active) && <UploadForm onParsed={add} onCancel={active ? () => setAdding(false) : undefined} />}
         {!locked && active && !adding && <ProfileView key={active.id} label={active.label} statement={active.statement} onClear={() => remove(active.id)} />}
-        <NavLookup />
       </main>
       <footer>
         NAVs from mfnav.in (sourced from AMFI). Figures are informational only and not investment advice. Verify with your AMC or CAS before acting.

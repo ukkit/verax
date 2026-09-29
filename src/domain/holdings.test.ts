@@ -87,6 +87,15 @@ describe('buildPortfolio', () => {
     expect(open[0]!.trades).toEqual([{ date: '2024-01-10', side: 'buy' }, { date: '2024-05-10', side: 'sell' }]);
   });
 
+  it('keeps the NAV printed on each unit transaction as a rough price history', () => {
+    const priced = (date: string, type: TransactionType, units: number, amount: number, nav: number | null): Transaction => ({ ...txn(date, type, units, amount), nav });
+    const { open } = buildPortfolio(statement(scheme([
+      priced('2024-01-10', 'PURCHASE', 10, 1000, 100), priced('2024-02-10', 'PURCHASE_SIP', 5, 600, 120),
+      txn('2024-03-10', 'STAMP_DUTY_TAX', null, 0.05), priced('2024-04-10', 'DIVIDEND_REINVEST', 1, 50, null), priced('2024-05-10', 'REDEMPTION', -2, -260, 130),
+    ])));
+    expect(open[0]!.navs).toEqual([{ date: '2024-01-10', nav: 100 }, { date: '2024-02-10', nav: 120 }, { date: '2024-05-10', nav: 130 }]);
+  });
+
   it('excludes a scheme that does not reconcile, with a reason', () => {
     const { open, excluded } = buildPortfolio(statement(scheme([txn('2024-01-10', 'PURCHASE', 10, 1000)], { reconciled: false })));
     expect(open).toHaveLength(0);

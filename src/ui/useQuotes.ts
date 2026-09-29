@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Position } from '../domain/holdings';
 import { navSource as source } from '../valuation/session';
-import { fetchQuotes, type Overrides, type PositionQuote } from '../valuation/quotes';
+import { fetchQuotes, type PositionQuote } from '../valuation/quotes';
 
 /** Live NAVs for open positions. `quotes` is null until the first lookup finishes; `error` is set only for an unexpected failure. */
-export function useQuotes(positions: readonly Position[], overrides: Overrides): { quotes: Map<string, PositionQuote> | null; error: string | null } {
+export function useQuotes(positions: readonly Position[]): { quotes: Map<string, PositionQuote> | null; error: string | null } {
   const [state, setState] = useState<{ quotes: Map<string, PositionQuote> | null; error: string | null }>({ quotes: null, error: null });
   useEffect(() => {
     let current = true;
-    fetchQuotes(positions, source, overrides).then(
+    fetchQuotes(positions, source).then(
       (quotes) => current && setState({ quotes, error: null }),
       (error) => {
         console.error('quotes_failed', { error });
@@ -18,6 +18,6 @@ export function useQuotes(positions: readonly Position[], overrides: Overrides):
     return () => {
       current = false;
     };
-  }, [positions, overrides]);
+  }, [positions]);
   return state;
 }

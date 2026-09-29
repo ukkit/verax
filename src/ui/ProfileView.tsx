@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo } from 'preact/hooks';
 import { buildPortfolio } from '../domain/holdings';
 import { summarize } from '../parser/summary';
 import type { SourceKind, Statement } from '../parser/types';
-import type { Overrides } from '../valuation/quotes';
 import { staleIds, valuePortfolio } from '../valuation/value';
 import { formatDate } from './format';
 import { ClosedTable, OpenTable } from './HoldingsTable';
@@ -19,8 +18,7 @@ const BETA: Record<Exclude<SourceKind, 'CAMS'>, string> = {
 export function ProfileView({ label, statement, onClear }: { label: string; statement: Statement; onClear: () => void }) {
   const { rows, folioCount } = useMemo(() => summarize(statement), [statement]);
   const portfolio = useMemo(() => buildPortfolio(statement), [statement]);
-  const [overrides, setOverrides] = useState<Overrides>(new Map());
-  const { quotes, error } = useQuotes(portfolio.open, overrides);
+  const { quotes, error } = useQuotes(portfolio.open);
   const valued = useMemo(() => (quotes ? valuePortfolio(portfolio, quotes) : null), [portfolio, quotes]);
   const stale = useMemo(() => (valued ? staleIds(valued.open) : new Set<string>()), [valued]);
 
@@ -74,18 +72,18 @@ export function ProfileView({ label, statement, onClear }: { label: string; stat
       )}
       {!valued && !error && (
         <p class="msg" role="status">
-          Fetching today’s NAVs…
+          Fetching today’s NAVs… Requests are paced to stay under mfnav.in’s limit, so a large portfolio can take a few minutes.
         </p>
       )}
       {valued && (
         <>
           {valued.totals.unvalued > 0 && (
             <p class="banner error" role="alert">
-              {valued.totals.unvalued} {valued.totals.unvalued === 1 ? 'scheme has' : 'schemes have'} no NAV and {valued.totals.unvalued === 1 ? 'is' : 'are'} left out of the totals. Enter a scheme code in its row.
+              {valued.totals.unvalued} {valued.totals.unvalued === 1 ? 'scheme has' : 'schemes have'} no NAV and {valued.totals.unvalued === 1 ? 'is' : 'are'} left out of the totals.
             </p>
           )}
           <Totals totals={valued.totals} hasClosed={valued.closed.length > 0} />
-          <OpenTable rows={valued.open} stale={stale} onOverride={(id, code) => setOverrides((prev) => new Map(prev).set(id, code))} />
+          <OpenTable rows={valued.open} stale={stale} />
           <ValueChart positions={[...portfolio.open, ...portfolio.closed]} quotes={quotes!} />
           {valued.closed.length > 0 && (
             <details class="closed">

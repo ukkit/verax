@@ -5,7 +5,7 @@ import { staleIds, valuePortfolio } from './value';
 
 const position = (id: string, over: Partial<Position> = {}): Position => ({
   id, folioId: 'f1', amc: 'Sample Mutual Fund', folioMasked: '••••1234', name: `Fund ${id}`, isin: null,
-  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null, trades: [], steps: [],
+  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null, trades: [], steps: [], navs: [],
   flows: [{ date: '2024-01-01', amount: -1000 }], ...over,
 });
 

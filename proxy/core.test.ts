@@ -101,6 +101,18 @@ describe('handle: upstream failures', () => {
     expect(res.headers.get('cache-control')).toBe('no-store');
   });
 
+  it('explains a 403 and logs the status and who refused, never the path or query', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = await handle(get('/api/funds/search?q=INF209KA12Z1'), { fetch: vi.fn().mockResolvedValue(new Response('blocked', { status: 403, headers: { server: 'cloudflare', 'cf-mitigated': 'challenge' } })) });
+    expect(res.status).toBe(502);
+    expect(((await res.json()) as { error: string }).error).toMatch(/403.*refused this host.*firewall/);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const line = JSON.parse(String(log.mock.calls[0]![0])) as Record<string, unknown>;
+    expect(line).toMatchObject({ event: 'upstream_unexpected_status', status: 403, server: 'cloudflare', mitigated: 'challenge' });
+    expect(JSON.stringify(line)).not.toContain('INF209KA12Z1');
+    log.mockRestore();
+  });
+
   it('does not follow or forward upstream redirects', async () => {
     const res = await handle(get('/api/funds/1'), { fetch: vi.fn().mockResolvedValue(new Response(null, { status: 302, headers: { location: 'https://evil.example/' } })) });
     expect(res.status).toBe(502);

@@ -5,7 +5,7 @@ import { formatDate, formatRupees } from './format';
 import { useHistory } from './useHistory';
 
 const RANGES = [['1Y', '1 year'], ['3Y', '3 years'], ['ALL', 'Since first purchase']] as const;
-const BOX: Box = { width: 640, height: 240, left: 64, bottom: 28, pad: 12 };
+const BOX: Box = { width: 1000, height: 300, left: 64, bottom: 30, pad: 14 };
 
 /** NAV history of one fund as an SVG line, with a marker for each purchase and sale. */
 export function NavChart({ schemeCode, trades }: { schemeCode: number; trades: Trade[] }) {

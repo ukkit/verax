@@ -2,6 +2,7 @@
 // money paid in is negative). Only reconciled schemes with a complete history become positions; the rest are listed as
 // excluded, with the reason, and never enter a total.
 import type { Scheme, Statement, Transaction, TransactionType } from '../parser/types';
+import type { NavPoint } from '../nav';
 import type { CashFlow } from './xirr';
 
 /** Units below this are rounding noise (statements print three decimals). */
@@ -52,6 +53,8 @@ export interface Position {
   flows: CashFlow[];
   trades: Trade[];
   steps: Step[];
+  /** The NAV printed on each of the scheme's transactions, oldest first: a rough price history that needs no network. */
+  navs: NavPoint[];
   statementNav: StatementNav | null;
 }
 
@@ -84,6 +87,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
   const flows: CashFlow[] = [];
   const trades: Trade[] = [];
   const steps: Step[] = [];
+  const navs: NavPoint[] = [];
   let realised = 0;
   let latest: Lot | undefined;
 
@@ -94,6 +98,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
 
   for (const t of scheme.transactions) {
     const cash = cashOf(t);
+    if (t.nav !== null && t.nav > 0 && t.units !== null && t.units !== 0) navs.push({ date: t.date, nav: t.nav });
     if (cash !== 0) flows.push({ date: t.date, amount: cash });
     if (t.units === null || t.units === 0) {
       // Stamp duty is part of the cost of the purchase it was charged on.
@@ -148,6 +153,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
     flows,
     trades,
     steps,
+    navs,
     statementNav: nav !== null && date !== null ? { nav, date } : null,
   };
 }

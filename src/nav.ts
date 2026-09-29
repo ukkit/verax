@@ -1,4 +1,10 @@
 // Client for the same-origin NAV proxy (see proxy/core.ts). Public fund data only.
+import { createLimiter } from './rateLimit';
+
+// mfnav.in allows 120 requests a minute per IP, shared by everyone using this deployment. Stay well under it from this
+// browser; a call waits only when the last minute is full.
+export const MAX_REQUESTS_PER_MINUTE = 60;
+const acquire = createLimiter(MAX_REQUESTS_PER_MINUTE, 60_000);
 
 export interface Fund {
   scheme_code: number;
@@ -27,7 +33,19 @@ export class NavError extends Error {
   }
 }
 
+/** The proxy explains its own refusals in `{ error }`; this adds that to the message. A body that is not the proxy's JSON adds nothing. */
+async function proxyReason(res: Response): Promise<string> {
+  try {
+    const { error } = (await res.json()) as { error?: unknown };
+    return typeof error === 'string' && error ? `: ${error}.` : '.';
+  } catch (parseError) {
+    if (parseError instanceof SyntaxError) return '.'; // an HTML or empty error page from the host, not from the proxy
+    throw parseError;
+  }
+}
+
 async function getJson<T>(path: string): Promise<T> {
+  await acquire();
   let res: Response;
   try {
     res = await fetch(path, { headers: { accept: 'application/json' } });
@@ -36,7 +54,7 @@ async function getJson<T>(path: string): Promise<T> {
   }
   if (res.status === 404) throw new NavError('No fund found.', 404);
   if (res.status === 429) throw new NavError('NAV service is rate limiting requests. Try again in a minute.', 429);
-  if (!res.ok) throw new NavError(`NAV service error (${res.status}).`, res.status);
+  if (!res.ok) throw new NavError(`NAV service error (${res.status})${await proxyReason(res)}`, res.status);
   return (await res.json()) as T;
 }
 
@@ -44,12 +62,6 @@ export const getFund = (schemeCode: number): Promise<Fund> => getJson<Fund>(`/ap
 
 export const searchFunds = (query: string, pageSize = 10): Promise<SearchResult> =>
   getJson<SearchResult>(`/api/funds/search?${new URLSearchParams({ q: query, page_size: String(pageSize) })}`);
-
-/** A plain number is a scheme code; anything else (ISIN, name) goes to search. */
-export const isSchemeCode = (input: string): boolean => /^\d{3,8}$/.test(input.trim());
-
-const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 4 });
-export const formatInr = (value: number): string => inr.format(value);
 
 export interface NavPoint {
   /** ISO date. */

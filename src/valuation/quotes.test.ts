@@ -7,7 +7,7 @@ import { mapLimit } from './pool';
 
 const fund = (code: number, over: Partial<Fund> = {}): Fund => ({ scheme_code: code, scheme_name: 'Sample Fund', fund_house: 'Sample', plan_type: 'Direct', option_type: 'Growth', isin: null, category: 'Equity', sub_category: null, latest_nav: 12.5, latest_nav_date: '2025-01-01', latest_day_change_pct: 0.5, ...over });
 const position = (id: string, over: Partial<Position> = {}): Position => ({
-  id, folioId: 'f1', amc: 'A', folioMasked: '••••1234', name: id, isin: `INF${id}`, units: 1, lots: [], invested: 10, avgCost: 10, realised: 0, flows: [], trades: [], steps: [], statementNav: { nav: 11, date: '2024-12-31' }, ...over,
+  id, folioId: 'f1', amc: 'A', folioMasked: '••••1234', name: id, isin: `INF${id}`, units: 1, lots: [], invested: 10, avgCost: 10, realised: 0, flows: [], trades: [], steps: [], navs: [], statementNav: { nav: 11, date: '2024-12-31' }, ...over,
 });
 const source = (over: Partial<NavSource> = {}): NavSource => ({ schemeCode: async () => 5, fund: async (c) => fund(c), ...over });
 
@@ -17,23 +17,15 @@ describe('fetchQuotes', () => {
     expect(quotes.get('a')).toEqual({ quote: { nav: 12.5, date: '2025-01-01', dayChangePct: 0.5, from: 'mfnav', schemeCode: 5 }, issue: null });
   });
 
-  it('prefers a manual scheme code over the ISIN', async () => {
-    const schemeCode = vi.fn(async () => 5);
-    const fundOf = vi.fn(async (c: number) => fund(c));
-    await fetchQuotes([position('a')], source({ schemeCode, fund: fundOf }), new Map([['a', 99]]));
-    expect(schemeCode).not.toHaveBeenCalled();
-    expect(fundOf).toHaveBeenCalledWith(99);
-  });
-
   it('falls back to the statement NAV when the ISIN is unmapped, and says so', async () => {
     const quotes = await fetchQuotes([position('a')], source({ schemeCode: async () => null }));
     expect(quotes.get('a')?.quote).toEqual({ nav: 11, date: '2024-12-31', dayChangePct: null, from: 'statement', schemeCode: null });
-    expect(quotes.get('a')?.issue).toMatch(/no single fund.*statement.*scheme code/);
+    expect(quotes.get('a')?.issue).toBe('mfnav.in has no single fund for this ISIN. Valued at the NAV printed on your statement.');
   });
 
   it('reports a scheme with no ISIN and no statement NAV as not valued', async () => {
     const quotes = await fetchQuotes([position('a', { isin: null, statementNav: null })], source());
-    expect(quotes.get('a')).toMatchObject({ quote: null, issue: expect.stringContaining('no ISIN') });
+    expect(quotes.get('a')).toMatchObject({ quote: null, issue: 'The statement gives no ISIN for this scheme. Not valued.' });
   });
 
   it('keeps going when one lookup fails and logs its status only', async () => {

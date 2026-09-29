@@ -41,3 +41,13 @@ https://github.com/mozilla/pdf.js
 The built site bundles PDF.js (the pdfjs-dist package) to read statement PDFs in the browser. PDF.js is
 Copyright (c) Mozilla Foundation and its contributors and is licensed under the Apache License, Version 2.0:
 https://www.apache.org/licenses/LICENSE-2.0
+
+------------------------------------------------------------------------------
+JetBrains Mono (SIL Open Font License 1.1)
+https://github.com/JetBrains/JetBrainsMono
+
+The interface font. src/fonts/ holds the Regular and Bold weights of release 2.304, subset to Latin and the symbols the app
+shows (made with fonttools' pyftsubset), with the licence text in src/fonts/OFL.txt.
+
+Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+

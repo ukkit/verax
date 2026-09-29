@@ -6,6 +6,8 @@
 //
 // It only ever handles public data (scheme codes, ISINs, NAVs). It never sees a CAS or its contents.
 
+import { logError } from './log.js';
+
 export const UPSTREAM = 'https://mfnav.in';
 
 /** /api/<funds|nav|date>[/<segment>]{0,3}, segments limited to a safe character set. */
@@ -87,7 +89,12 @@ export async function handle(request: Request, options: ProxyOptions = {}): Prom
     return json(429, { error: 'upstream rate limit reached' }, retryAfter && /^\d{1,5}$/.test(retryAfter) ? { 'retry-after': retryAfter } : {});
   }
   if (upstream.status === 404) return json(404, { error: 'not found' }, { 'cache-control': CACHE_NOT_FOUND });
-  if (upstream.status !== 200) return json(502, { error: `upstream returned ${upstream.status}` });
+  if (upstream.status !== 200) {
+    // Status and the two headers that say who refused, never the path or query (see docs/SECURITY.md).
+    logError('upstream_unexpected_status', { status: upstream.status, server: upstream.headers.get('server'), mitigated: upstream.headers.get('cf-mitigated') });
+    const refused = upstream.status === 401 || upstream.status === 403;
+    return json(502, { error: refused ? `upstream returned ${upstream.status}: mfnav.in refused this host, which usually means its firewall blocks this host's network` : `upstream returned ${upstream.status}` });
+  }
 
   if (!(upstream.headers.get('content-type') ?? '').toLowerCase().includes('json')) {
     return json(502, { error: 'unexpected upstream content type' });

@@ -1,3 +1,21 @@
+/* JetBrains Mono, subset to Latin and the symbols this app shows (SIL Open Font License, see src/fonts/OFL.txt). It has no
+   rupee sign, so that one glyph comes from the next font in the stack. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 500 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/JetBrainsMono-Bold.woff2') format('woff2');
+}
+
 :root {
   color-scheme: light dark;
   --bg: #f7f8f7;
@@ -11,6 +29,9 @@
   --down: #b91c1c;
   --warn-bg: #fdecec;
   --note-bg: #eef6f5;
+  /* Chart lines. White and yellow are for the dark theme; on the light page they become dark ink and amber so they stay visible. */
+  --line-invested: #17201e;
+  --line-worth: #ca8a04;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,6 +47,8 @@
     --down: #f87171;
     --warn-bg: #3a1f1f;
     --note-bg: #16302d;
+    --line-invested: #ffffff;
+    --line-worth: #facc15;
   }
 }
 
@@ -37,7 +60,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 0.9rem/1.55 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -52,8 +75,6 @@ body {
 main {
   flex: 1;
   width: 100%;
-  max-width: 64rem;
-  margin: 0 auto;
   padding: 2rem 1rem;
 }
 
@@ -125,46 +146,6 @@ button:disabled {
 
 .msg.error {
   color: var(--down);
-}
-
-.funds {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.funds li {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.funds h3 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.meta {
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.nav {
-  margin: 0.5rem 0 0;
-}
-
-.nav strong {
-  font-size: 1.4rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.nav span {
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 
 .chg.up {
@@ -462,6 +443,7 @@ details.closed summary {
 .chart svg {
   width: 100%;
   height: auto;
+  max-height: 28rem;
 }
 
 .ranges {
@@ -551,6 +533,7 @@ button.link {
 .value-chart svg {
   width: 100%;
   height: auto;
+  max-height: 30rem;
 }
 
 .line-value,
@@ -559,11 +542,11 @@ button.link {
 }
 
 .line-value {
-  stroke: var(--accent);
+  stroke: var(--line-worth);
 }
 
 .line-invested {
-  stroke: var(--muted);
+  stroke: var(--line-invested);
   stroke-dasharray: 5 4;
 }
 
@@ -572,15 +555,15 @@ button.link {
 }
 
 .hit:hover {
-  fill: var(--accent);
+  fill: var(--line-worth);
 }
 
 .dot.value {
-  background: var(--accent);
+  background: var(--line-worth);
 }
 
 .dot.invested {
-  background: var(--muted);
+  background: var(--line-invested);
 }
 
 /* Transaction filters */

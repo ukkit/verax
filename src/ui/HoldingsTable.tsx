@@ -1,35 +1,11 @@
 import { useState } from 'preact/hooks';
-import { isSchemeCode } from '../nav';
 import type { ValuedPosition } from '../valuation/value';
 import { NavChart } from './NavChart';
 import { formatDate, formatPercent, formatRupees, formatSignedRupees, formatUnits, trend } from './format';
 
 const dash = '—';
 
-/** Asks for the mfnav.in scheme code of a fund that could not be matched by ISIN. */
-function CodeForm({ onSubmit }: { onSubmit: (code: number) => void }) {
-  const [text, setText] = useState('');
-  const [error, setError] = useState('');
-  return (
-    <form
-      class="override"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!isSchemeCode(text)) return setError('A scheme code is 3 to 8 digits. Look it up in the box at the bottom of the page.');
-        setError('');
-        onSubmit(Number(text.trim()));
-      }}
-    >
-      <input type="text" inputMode="numeric" value={text} onInput={(e) => setText((e.target as HTMLInputElement).value)} aria-label="mfnav.in scheme code" placeholder="Scheme code" autocomplete="off" />
-      <button type="submit" class="secondary">
-        Use
-      </button>
-      {error && <span class="sub bad">{error}</span>}
-    </form>
-  );
-}
-
-function SchemeCell({ v, onOverride, charted, onChart }: { v: ValuedPosition; onOverride?: (id: string, code: number) => void; charted?: boolean; onChart?: () => void }) {
+function SchemeCell({ v, charted, onChart }: { v: ValuedPosition; charted?: boolean; onChart?: () => void }) {
   return (
     <td data-label="Scheme">
       <strong>{v.position.name}</strong>
@@ -37,7 +13,6 @@ function SchemeCell({ v, onOverride, charted, onChart }: { v: ValuedPosition; on
         {v.position.amc} · folio {v.position.folioMasked}
       </span>
       {v.issue && <span class="sub warn">{v.issue}</span>}
-      {v.issue && onOverride && <CodeForm onSubmit={(code) => onOverride(v.position.id, code)} />}
       {onChart && v.quote?.schemeCode != null && (
         <button type="button" class="link" aria-expanded={charted} onClick={onChart}>
           {charted ? 'Hide NAV chart' : 'NAV chart'}
@@ -47,7 +22,7 @@ function SchemeCell({ v, onOverride, charted, onChart }: { v: ValuedPosition; on
   );
 }
 
-export function OpenTable({ rows, stale, onOverride }: { rows: ValuedPosition[]; stale: ReadonlySet<string>; onOverride: (id: string, code: number) => void }) {
+export function OpenTable({ rows, stale }: { rows: ValuedPosition[]; stale: ReadonlySet<string> }) {
   const [charted, setCharted] = useState<string | null>(null);
   return (
     <div class="table-wrap">
@@ -68,7 +43,7 @@ export function OpenTable({ rows, stale, onOverride }: { rows: ValuedPosition[];
           {rows.map((v) => (
             <>
             <tr key={v.position.id} class={v.value === null ? 'excluded' : ''}>
-              <SchemeCell v={v} onOverride={onOverride} charted={charted === v.position.id} onChart={() => setCharted(charted === v.position.id ? null : v.position.id)} />
+              <SchemeCell v={v} charted={charted === v.position.id} onChart={() => setCharted(charted === v.position.id ? null : v.position.id)} />
               <td data-label="Units" class="num">{formatUnits(v.position.units)}</td>
               <td data-label="Avg cost" class="num">{v.position.avgCost === null ? dash : formatRupees(v.position.avgCost)}</td>
               <td data-label="Invested" class="num">{formatRupees(v.position.invested)}</td>

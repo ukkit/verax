@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatPercent, formatRupees, formatSignedRupees, formatUnits, trend } from './format';
+import { formatCompactRupees, formatDate, formatPercent, formatRupees, formatSignedRupees, formatUnits, trend } from './format';
 
 describe('formatting', () => {
   it('groups digits the Indian way', () => {
@@ -23,5 +23,11 @@ describe('formatting', () => {
 
   it('colours by direction', () => {
     expect([trend(1), trend(-1), trend(0)]).toEqual(['chg up', 'chg down', 'chg']);
+  });
+
+  it('shortens rupee amounts for axes', () => {
+    expect(formatCompactRupees(133812)).toBe('₹1.3L');
+    expect(formatCompactRupees(25000000)).toBe('₹2.5Cr');
+    expect(formatCompactRupees(0)).toBe('₹0');
   });
 });

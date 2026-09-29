@@ -26,6 +26,13 @@ export interface Trade {
   side: 'buy' | 'sell';
 }
 
+/** Units held, and what they cost, right after a transaction. The history of a position, for charting it over time. */
+export interface Step {
+  date: string;
+  units: number;
+  cost: number;
+}
+
 export interface Position {
   /** Unique within a statement: folio id plus the scheme's position in that folio. */
   id: string;
@@ -44,6 +51,7 @@ export interface Position {
   realised: number;
   flows: CashFlow[];
   trades: Trade[];
+  steps: Step[];
   statementNav: StatementNav | null;
 }
 
@@ -75,21 +83,31 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
   const lots: Lot[] = [];
   const flows: CashFlow[] = [];
   const trades: Trade[] = [];
+  const steps: Step[] = [];
   let realised = 0;
   let latest: Lot | undefined;
+
+  const snapshot = (date: string): void => {
+    const units = lots.reduce((sum, lot) => sum + lot.units, 0);
+    steps.push(units > UNIT_EPS ? { date, units, cost: lots.reduce((sum, lot) => sum + lot.cost, 0) } : { date, units: 0, cost: 0 });
+  };
 
   for (const t of scheme.transactions) {
     const cash = cashOf(t);
     if (cash !== 0) flows.push({ date: t.date, amount: cash });
     if (t.units === null || t.units === 0) {
       // Stamp duty is part of the cost of the purchase it was charged on.
-      if (t.type === 'STAMP_DUTY_TAX' && latest) latest.cost += Math.abs(t.amount ?? 0);
+      if (t.type === 'STAMP_DUTY_TAX' && latest) {
+        latest.cost += Math.abs(t.amount ?? 0);
+        snapshot(t.date);
+      }
       continue;
     }
     trades.push({ date: t.date, side: t.units > 0 ? 'buy' : 'sell' });
     if (t.units > 0) {
       latest = { date: t.date, units: t.units, cost: Math.abs(t.amount ?? 0) };
       lots.push(latest);
+      snapshot(t.date);
       continue;
     }
     let toSell = -t.units;
@@ -108,6 +126,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
     }
     if (toSell > UNIT_EPS) throw new IncompleteHistory('Units were sold that the statement never shows being bought.');
     if (cash !== 0) realised += cash - costSold;
+    snapshot(t.date);
   }
 
   const units = lots.reduce((sum, lot) => sum + lot.units, 0);
@@ -128,6 +147,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
     realised,
     flows,
     trades,
+    steps,
     statementNav: nav !== null && date !== null ? { nav, date } : null,
   };
 }

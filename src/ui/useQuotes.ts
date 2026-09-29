@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Position } from '../domain/holdings';
-import { createNavSource } from '../valuation/navSource';
+import { navSource as source } from '../valuation/session';
 import { fetchQuotes, type Overrides, type PositionQuote } from '../valuation/quotes';
-
-/** One source for the whole session, so a NAV fetched for one profile is not fetched again for another. */
-const source = createNavSource();
 
 /** Live NAVs for open positions. `quotes` is null until the first lookup finishes; `error` is set only for an unexpected failure. */
 export function useQuotes(positions: readonly Position[], overrides: Overrides): { quotes: Map<string, PositionQuote> | null; error: string | null } {

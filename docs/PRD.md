@@ -11,7 +11,7 @@ Status: Milestones 1 to 5 done (parser validated on synthetic statements, in a r
 | 1 | Scaffold, shared proxy, three hosts, CI, PII guard | **Done** | Smoke tests on the local server and Cloudflare's runtime; not yet deployed on either host |
 | 2 | Statement parser, worker, upload UI, reconciliation | **Done** | 194 tests; 22 browser checks; 1,636 of 1,636 real transactions matched casparser; privacy check clean |
 | 3 | Holdings (FIFO), XIRR, live NAV valuation, closed positions, profiles | **Done** | 229 tests; browser run (profiles, override, replace, remove, no external requests, no console errors); real-statement check passed (§10) |
-| 4 | Charts, transaction view, stale-NAV badge, polish | **Done** | 243 tests; 11 browser checks (chart with markers, ranges, allocation, filters, badge, no external requests, no console errors); hand-drawn SVG, no chart dependency |
+| 4 | Charts, transaction view, stale-NAV badge, polish | **Done** | 243 tests; 11 browser checks (chart with markers, ranges, filters, badge, no external requests, no console errors); hand-drawn SVG, no chart dependency |
 | 5 | Encrypted "Remember on this device", auto-lock | **Done** | 252 tests; 23 browser checks (record holds only ciphertext, unlock, wrong passphrase, lock, idle auto-lock, persistence of add/remove/setting, forget) |
 
 Open items (§14): the first real deploy on Cloudflare Pages and Vercel, a real KFintech statement to lift the beta label, the unmeasured speed budget, and two v1 gaps (merging partial statements, a clear-all button).
@@ -38,14 +38,14 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 4. Holdings table: units, avg cost (derived from FIFO lots), invested, current value, unrealised gain (abs, %), day change, NAV date.
 5. Portfolio summary: invested, current value, total gain, absolute return, portfolio XIRR (headline), per-fund XIRR.
 6. Closed (fully redeemed) positions: always included in XIRR; hidden by default in a collapsed "Closed positions" section showing realised gain (proceeds minus FIFO cost, not a tax report).
-7. Charts: per-fund NAV history (1Y, 3Y, since first purchase) with buy/sell markers; allocation by category and AMC.
+7. Charts: per-fund NAV history (1Y, 3Y, since first purchase) with buy/sell markers; invested against worth over time for the whole portfolio, loaded on request (replaced the planned allocation by category and AMC, 2026-09-29).
 8. Transaction list with filters (fund, type, date).
 9. Failure handling: continue and flag. A banner shows how many schemes failed reconciliation (the level at which a statement prints a closing balance); each is marked and **excluded from totals**, and the banner lists which. No debug export.
 10. Clear-data controls: "Remove this profile" per profile, and "Stop saving and delete" for the encrypted store; a single clear-all button is deferred (§14). Permanent disclaimer footer (§6).
 
 ### Out (v1) / later
 - Encrypted export and import of the saved data (the opt-in "Remember on this device" itself shipped in milestone 5, §9).
-- v2: portfolio-value-over-time chart, LTCG/STCG tax reports, combined household view, NSDL/CDSL support, Docker image.
+- v2: LTCG/STCG tax reports, combined household view, NSDL/CDSL support, Docker image.
 - Not planned: accounts/login, multi-device sync, broker/AMC integrations, PWA offline mode, second NAV source, mfnav API keys (until offered).
 
 ## 5. Calculation rules
@@ -56,6 +56,7 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 - **Units without cash**: reinvested IDCW, segregation and gifts add or remove units with no cash flow (a gift books no realised gain). STT, TDS and miscellaneous rows carry no cash flow.
 - **Incomplete history**: a scheme that starts with units of unknown cost, or sells more units than it bought, is excluded from totals with the reason shown, the same as a scheme that fails reconciliation.
 - **XIRR**: Newton with bisection fallback; current value as terminal inflow; closed folios included.
+- **Value over time**: month-end samples from the first transaction to today. "Invested" is the cost of the units held on that date (FIFO), "worth" is those units at the NAV in force that day. Closed funds count for the months they were held. A fund whose NAV history cannot be loaded is left out of both lines and listed with the reason.
 - **Stale NAV**: a NAV is flagged "Older NAV" when it is older than the newest live NAV in the portfolio, and always when it is only the statement's own NAV.
 - **Acceptance**: per-scheme computed closing units equal the CAS closing balance exactly; total value within 0.1% of the CAS valuation (allowing for NAV date differences).
 
@@ -76,7 +77,7 @@ Browser (static SPA)                    Cloudflare Pages | Vercel | local Node
  ├─ holdings / XIRR computed locally             ▼
  └─ fetch same-origin /api/nav/* ─────────► https://mfnav.in/api/...
 ```
-Stack: Vite + TypeScript + Preact, `pdfjs-dist`, hand-drawn SVG for the NAV chart and CSS bars for allocation (uPlot was planned and dropped, see milestone 4), WebCrypto for the vault, Vitest.
+Stack: Vite + TypeScript + Preact, `pdfjs-dist`, hand-drawn SVG for the charts (uPlot was planned and dropped, see milestone 4), WebCrypto for the vault, Vitest.
 
 ### Proxy: one core, three wrappers
 - `proxy/core.ts` — pure `handle(Request) → Response` on web-standard APIs: GET-only, path regex allow-list to `https://mfnav.in/api/(funds|nav|date)/…`, timeout, no cookie/header forwarding, cache headers.
@@ -107,7 +108,7 @@ The README states plainly that anyone deploying publicly must opt in to protecti
 - If `ci.yml` is ever made a required status check, note that GitHub leaves a skipped (path-filtered) required check pending on docs-only PRs; make only `scan` required, or drop the path filter.
 
 ### Modules
-`src/parser/*` (statement reader), `src/domain/*` (FIFO holdings, XIRR, allocation, chart geometry, transaction filters), `src/valuation/*` (NAV lookups, quotes, valuation), `src/vault/*` (encrypted store), `src/nav.ts` (proxy client), `src/ui/*`, `proxy/core.ts` + wrappers, `vercel.json` / `_headers` (security headers, CSP).
+`src/parser/*` (statement reader), `src/domain/*` (FIFO holdings, XIRR, value over time, chart geometry, transaction filters), `src/valuation/*` (NAV lookups, quotes, valuation), `src/vault/*` (encrypted store), `src/nav.ts` (proxy client), `src/ui/*`, `proxy/core.ts` + wrappers, `vercel.json` / `_headers` (security headers, CSP).
 
 ## 8. Parser (decided: Option C, in-browser PDF upload from v1)
 Decided: port to TypeScript, run in-browser, keep transaction descriptions, capture closing balance and valuation, drop the hard-coded AMC list, synthetic fixtures only. **Base the port on `codereverser/casparser` (MIT, active: v1.4.1 Aug 2026, last push 2026-09-23, 231★) rather than the old `processCASpdf.py`.** Using casparser as-is was rejected: it needs Python + `pypdfium2` (no WebAssembly wheel on PyPI), so it would mean server-side parsing (breaks the privacy model) or a CLI step for every user (unusable for non-technical family). Comparison:
@@ -188,7 +189,7 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 2. **Done (2026-09-29, synthetic + browser verification).** Parser in `src/parser/` (TypeScript port of casparser), Web Worker, upload/unlock UI with per-scheme summary, reconciliation flags and the KFintech beta notice. Verified: 194 tests in total, including the real pdf.js on a generated PDF; a headless Chromium run (22 checks) on both the local server and Cloudflare's runtime: upload, banners, encrypted PDF (missing, wrong, right password), NSDL refusal, no request leaving the origin, no console errors. **Real-statement check passed (2026-09-29):** on two real CAMS statements (37 and 30 schemes) the parser matched casparser on 1,636 of 1,636 transactions with 0 missing and 0 extra, all transaction types, closing balances, valuation lines, ISINs, scheme names and folio last-four agreed, the reconcile flags agreed, and the source was detected as CAMS. The privacy check first found 53 and 19 runs of 8+ digits (payment references in descriptions); after masking them it is clean.
 3. **Done (2026-09-29).** Holdings (FIFO lots, average cost derived), XIRR (Newton with bisection fallback; closed folios included), live NAV valuation via mfnav.in by ISIN (cached, stale-NAV badge, manual scheme-code override for unmapped funds), closed positions in a collapsed section with realised gain, and several profiles kept separate. Builds on `Statement` from milestone 2; only reconciled schemes enter totals. Acceptance: total value within 0.1% of the statement's own valuation, allowing for NAV date differences, checked on the real statements with a tool like `tools/parser-oracle`.
    **Real-statement check passed (2026-09-29, `tools/valuation-check`):** on a real CAMS statement with 13 open and 24 closed schemes, none excluded, FIFO cost and value at the statement's own NAVs both matched the statement (-0.000%), all 13 NAVs came from mfnav.in by ISIN, and the portfolio XIRR was 12.90%. Value at that day's live NAVs differed by -1.346%, which is NAV movement since the statement date. **Not yet measured:** the 3 s warm budget for 30 funds. The 13 funds took 5.1 s cold, directly against mfnav.in from Node, at two lookups per fund and 4 in flight; a warm run through the proxy's edge cache needs a deployed host.
-4. **Done (2026-09-29).** Per-fund NAV chart (1 year, 3 years, since first purchase) with purchase and sale markers, opened from a holding's row; allocation by category (from mfnav.in) and by fund house; a collapsed Transactions section with scheme, type and date filters, shown 50 rows at a time; an "Older NAV" badge on any NAV older than the newest live NAV in the portfolio, and on statement-NAV fallbacks. Charts are hand-drawn SVG and the allocation is CSS bars, so uPlot (Q11) was not added: it fails the dependency rules (one maintainer, last release March 2025). NAV history is fetched only when a chart is opened, 1,000 rows a page, and cached per scheme and start date. First load is about 15.5 KB gzip.
+4. **Done (2026-09-29).** Per-fund NAV chart (1 year, 3 years, since first purchase) with purchase and sale markers, opened from a holding's row; a portfolio chart of invested against worth over the years (added after the first deploy, replacing the allocation bars; loaded on request, closed funds included, month-end samples); a collapsed Transactions section with scheme, type and date filters, shown 50 rows at a time; an "Older NAV" badge on any NAV older than the newest live NAV in the portfolio, and on statement-NAV fallbacks. Charts are hand-drawn SVG, so uPlot (Q11) was not added: it fails the dependency rules (one maintainer, last release March 2025). NAV history is fetched only when a chart is opened, 1,000 rows a page, and cached per scheme and start date. First load is about 15.5 KB gzip.
 5. **Done (2026-09-29).** Opt-in encrypted vault (`src/vault/`): PBKDF2-SHA256 at 600,000 iterations to an AES-256-GCM key, one record in IndexedDB holding all profiles, passphrase of 12+ characters typed twice, lock now, and an idle auto-lock the user picks (1, 5, 15 or 60 minutes, saved inside the vault). No dependency. Deviation from §9: salt per vault and IV per write, because a new salt on every save would need the passphrase kept. Encrypted export and import are deferred. The NAV cache stays in memory (session), not IndexedDB.
 
 ## 11. Acceptance / Verification

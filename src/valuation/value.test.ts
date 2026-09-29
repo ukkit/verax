@@ -5,11 +5,11 @@ import { staleIds, valuePortfolio } from './value';
 
 const position = (id: string, over: Partial<Position> = {}): Position => ({
   id, folioId: 'f1', amc: 'Sample Mutual Fund', folioMasked: '••••1234', name: `Fund ${id}`, isin: null,
-  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null, trades: [],
+  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null, trades: [], steps: [],
   flows: [{ date: '2024-01-01', amount: -1000 }], ...over,
 });
 
-const mf = (nav: number, dayChangePct: number | null = null): PositionQuote => ({ quote: { nav, date: '2025-01-01', dayChangePct, from: 'mfnav', schemeCode: 1, category: 'Equity Scheme' }, issue: null });
+const mf = (nav: number, dayChangePct: number | null = null): PositionQuote => ({ quote: { nav, date: '2025-01-01', dayChangePct, from: 'mfnav', schemeCode: 1 }, issue: null });
 const portfolio = (open: Position[], closed: Position[] = []): Portfolio => ({ open, closed, excluded: [] });
 
 describe('valuePortfolio', () => {
@@ -49,7 +49,7 @@ describe('valuePortfolio', () => {
 });
 
 describe('staleIds', () => {
-  const at = (date: string, from: 'mfnav' | 'statement' = 'mfnav'): PositionQuote => ({ quote: { nav: 10, date, dayChangePct: null, from, schemeCode: null, category: null }, issue: null });
+  const at = (date: string, from: 'mfnav' | 'statement' = 'mfnav'): PositionQuote => ({ quote: { nav: 10, date, dayChangePct: null, from, schemeCode: null }, issue: null });
 
   it('flags a NAV older than the newest live one and any statement NAV, but not the newest', () => {
     const p = portfolio([position('new'), position('old'), position('stmt'), position('none')]);

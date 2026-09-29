@@ -537,51 +537,50 @@ button.link {
   font-weight: 600;
 }
 
-/* Allocation bars */
-.allocation {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  gap: 1.5rem;
+/* Value over time */
+.value-chart {
   margin: 1.5rem 0 0;
 }
 
-.allocation h3,
+.value-chart h3,
 .transactions h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
 }
 
-.bars {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.6rem;
+.value-chart svg {
+  width: 100%;
+  height: auto;
 }
 
-.bar-label {
-  display: block;
-  font-size: 0.9rem;
+.line-value,
+.line-invested {
+  stroke-width: 2;
 }
 
-.bar {
-  display: block;
-  height: 0.6rem;
-  border-radius: 0.3rem;
-  background: var(--border);
-  overflow: hidden;
+.line-value {
+  stroke: var(--accent);
 }
 
-.bar span {
-  display: block;
-  height: 100%;
+.line-invested {
+  stroke: var(--muted);
+  stroke-dasharray: 5 4;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.hit:hover {
+  fill: var(--accent);
+}
+
+.dot.value {
   background: var(--accent);
 }
 
-.bar-value {
-  font-size: 0.8rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+.dot.invested {
+  background: var(--muted);
 }
 
 /* Transaction filters */

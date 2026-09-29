@@ -19,3 +19,7 @@ export const formatSignedRupees = (value: number): string => signedRupees.format
 export const formatPercent = (fraction: number): string => percent.format(fraction);
 /** "up" or "down" for colouring a gain; nothing for zero. */
 export const trend = (value: number): string => (value > 0 ? 'chg up' : value < 0 ? 'chg down' : 'chg');
+
+const compact = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 });
+/** A short rupee amount for chart axes: ₹1.3L, ₹2.5Cr. */
+export const formatCompactRupees = (value: number): string => compact.format(value);

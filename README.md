@@ -14,8 +14,8 @@ your statement is never uploaded. The name is Latin for "truthful".
   code by hand, and is valued at the statement's own NAV until then.
 - Shows value, invested amount (FIFO), gain, day change and XIRR per fund and for the whole portfolio, with closed
   positions included in the return and kept in their own section.
-- Keeps several profiles separate, draws a NAV chart per fund with your purchases and sales marked, shows allocation by
-  category and fund house, and lists every transaction with filters.
+- Keeps several profiles separate, draws a NAV chart per fund with your purchases and sales marked, charts what you invested
+  against what it was worth over the years (on request), and lists every transaction with filters.
 - Optionally remembers your statements on the device, encrypted with a passphrase, and locks itself when idle.
 
 See the [PRD](docs/PRD.md) for the plan and decisions.
@@ -31,6 +31,25 @@ npm start          # http://127.0.0.1:8787
 ```
 
 For development with hot reload: `npm run dev`. Both use the same proxy code as the hosted versions.
+
+## Deploy your own copy
+
+Cloudflare Pages and Vercel deploy from a repository in your own GitHub account, so you need your own copy of this one.
+Anyone can host it.
+
+- Vercel: the button clones the repository into your account and starts the project setup.
+
+  [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fukkit%2Fverax&project-name=verax&repository-name=verax)
+
+  The password gate is optional, so the button does not ask for `SITE_USER` and `SITE_PASS`. Add them under the project's
+  environment variables if you want the gate (see [Vercel](#vercel) below).
+- Cloudflare Pages: fork this repository on GitHub first (the Fork button, or `gh repo fork ukkit/verax --clone=false`),
+  then follow [Cloudflare Pages](#cloudflare-pages) below and pick your fork. Cloudflare's Pages documentation describes
+  only its Git integration, so there is no deploy button here.
+- Your own computer: clone the repository and follow "Run it locally" above. No hosting account is needed.
+
+Every deployment shares mfnav.in's limit of 120 requests a minute per IP, so if you host it publicly, protect it with the
+access step in the deploy section for your host.
 
 ## Deploy
 
@@ -79,7 +98,7 @@ PAN numbers and real email addresses.
 | Path | Purpose |
 |---|---|
 | `src/` | Preact app (Vite): `ui/` components, `parser/` the statement reader (runs in a Web Worker) |
-| `src/domain/` | Holdings (FIFO), XIRR, allocation, chart geometry and transaction filters; pure and unit-tested |
+| `src/domain/` | Holdings (FIFO), XIRR, value over time, chart geometry and transaction filters; pure and unit-tested |
 | `src/valuation/` | Live NAV lookups (ISIN to scheme code, cached, at most 4 at a time) and portfolio valuation |
 | `src/vault/` | The opt-in encrypted store: PBKDF2-SHA256 and AES-256-GCM through WebCrypto, kept in IndexedDB |
 | `tools/parser-oracle/` | Dev-only check of the parser against casparser on your own statements ([guide](docs/parser-oracle.md)) |

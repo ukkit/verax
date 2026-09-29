@@ -5,10 +5,10 @@ import type { SourceKind, Statement } from '../parser/types';
 import type { Overrides } from '../valuation/quotes';
 import { staleIds, valuePortfolio } from '../valuation/value';
 import { formatDate } from './format';
-import { Allocation } from './Allocation';
 import { ClosedTable, OpenTable } from './HoldingsTable';
 import { Totals } from './Totals';
 import { Transactions } from './Transactions';
+import { ValueChart } from './ValueChart';
 import { useQuotes } from './useQuotes';
 
 const BETA: Record<Exclude<SourceKind, 'CAMS'>, string> = {
@@ -86,7 +86,7 @@ export function ProfileView({ label, statement, onClear }: { label: string; stat
           )}
           <Totals totals={valued.totals} hasClosed={valued.closed.length > 0} />
           <OpenTable rows={valued.open} stale={stale} onOverride={(id, code) => setOverrides((prev) => new Map(prev).set(id, code))} />
-          <Allocation open={valued.open} />
+          <ValueChart positions={[...portfolio.open, ...portfolio.closed]} quotes={quotes!} />
           {valued.closed.length > 0 && (
             <details class="closed">
               <summary>Closed positions ({valued.closed.length})</summary>

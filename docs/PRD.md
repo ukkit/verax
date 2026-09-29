@@ -14,7 +14,7 @@ Status: Milestones 1 to 5 done (parser validated on synthetic statements, in a r
 | 4 | Charts, transaction view, stale-NAV badge, polish | **Done** | 243 tests; 11 browser checks (chart with markers, ranges, allocation, filters, badge, no external requests, no console errors); hand-drawn SVG, no chart dependency |
 | 5 | Encrypted "Remember on this device", auto-lock | **Done** | 252 tests; 23 browser checks (record holds only ciphertext, unlock, wrong passphrase, lock, idle auto-lock, persistence of add/remove/setting, forget) |
 
-Open items: a real KFintech statement to lift the beta label, and the first real deploy on Cloudflare Pages and Vercel (§14).
+Open items (§14): the first real deploy on Cloudflare Pages and Vercel, a real KFintech statement to lift the beta label, the unmeasured speed budget, and two v1 gaps (merging partial statements, a clear-all button).
 
 ## 1. Problem & Goal
 Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF has full transaction history but no live valuation or returns view. Build a dashboard that reads a CAS PDF in the browser, values holdings with current NAVs from mfnav.in, and shows portfolio value, gains, and XIRR. It deploys in minutes on free hosting (Cloudflare Pages or Vercel), or runs locally, with no database.
@@ -33,7 +33,7 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 ## 4. Scope
 ### In (v1)
 1. Upload/unlock a **detailed** CAS in the browser; parse locally. **CAMS-generated statements are supported and validated** (they also contain KFintech-registrar funds). **KFintech-generated statements are marked beta/untested** until a real one has been run through the spike; unreadable or non-reconciling files are rejected or flagged, never shown with wrong numbers. NSDL/CDSL files get a clear "not supported yet" message. Non-mutual-fund holdings are out of scope.
-2. Multiple profiles, each separate. Newest CAS per profile is the source of truth; merge (dedupe by folio+date+units+amount) only when a CAS covers a limited date range.
+2. Multiple profiles, each separate. Newest CAS per profile is the source of truth; merge (dedupe by folio+date+units+amount) only when a CAS covers a limited date range. **Shipped as replace-only:** uploading again under the same name replaces the profile, and merging a limited-range statement is deferred (§14).
 3. Map each scheme to an mfnav `scheme_code` via ISIN (mfnav only); unmapped funds show a manual scheme-code field and are valued at the CAS NAV meanwhile.
 4. Holdings table: units, avg cost (derived from FIFO lots), invested, current value, unrealised gain (abs, %), day change, NAV date.
 5. Portfolio summary: invested, current value, total gain, absolute return, portfolio XIRR (headline), per-fund XIRR.
@@ -41,10 +41,10 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 7. Charts: per-fund NAV history (1Y, 3Y, since first purchase) with buy/sell markers; allocation by category and AMC.
 8. Transaction list with filters (fund, type, date).
 9. Failure handling: continue and flag. A banner shows how many schemes failed reconciliation (the level at which a statement prints a closing balance); each is marked and **excluded from totals**, and the banner lists which. No debug export.
-10. Clear-data button. Permanent disclaimer footer (§6).
+10. Clear-data controls: "Remove this profile" per profile, and "Stop saving and delete" for the encrypted store; a single clear-all button is deferred (§14). Permanent disclaimer footer (§6).
 
 ### Out (v1) / later
-- After milestone 3: encrypted "Remember on this device" (§9).
+- Encrypted export and import of the saved data (the opt-in "Remember on this device" itself shipped in milestone 5, §9).
 - v2: portfolio-value-over-time chart, LTCG/STCG tax reports, combined household view, NSDL/CDSL support, Docker image.
 - Not planned: accounts/login, multi-device sync, broker/AMC integrations, PWA offline mode, second NAV source, mfnav API keys (until offered).
 
@@ -53,7 +53,10 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 - **Switches**: switch-out = sell, switch-in = buy; they net to about zero in portfolio XIRR.
 - **Dividends**: IDCW payouts are cash inflows on their date; reinvested IDCW are buys with no new cash out.
 - **Stamp duty / STT / TDS**: stamp duty is added to the cost of the purchase it belongs to.
+- **Units without cash**: reinvested IDCW, segregation and gifts add or remove units with no cash flow (a gift books no realised gain). STT, TDS and miscellaneous rows carry no cash flow.
+- **Incomplete history**: a scheme that starts with units of unknown cost, or sells more units than it bought, is excluded from totals with the reason shown, the same as a scheme that fails reconciliation.
 - **XIRR**: Newton with bisection fallback; current value as terminal inflow; closed folios included.
+- **Stale NAV**: a NAV is flagged "Older NAV" when it is older than the newest live NAV in the portfolio, and always when it is only the statement's own NAV.
 - **Acceptance**: per-scheme computed closing units equal the CAS closing balance exactly; total value within 0.1% of the CAS valuation (allowing for NAV date differences).
 
 ## 6. Non-Functional Requirements
@@ -69,11 +72,11 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 Browser (static SPA)                    Cloudflare Pages | Vercel | local Node
  ├─ pick cas.pdf + password (local)      ├─ static assets
  ├─ pdf.js in Web Worker → parser        └─ /api/nav/*  thin wrapper
- ├─ session memory (v1)                          │ calls shared proxy core
+ ├─ session memory; opt-in encrypted store       │ calls shared proxy core
  ├─ holdings / XIRR computed locally             ▼
  └─ fetch same-origin /api/nav/* ─────────► https://mfnav.in/api/...
 ```
-Stack: Vite + TypeScript + Preact, `pdfjs-dist`, uPlot (NAV chart) + plain SVG (allocation), Vitest.
+Stack: Vite + TypeScript + Preact, `pdfjs-dist`, hand-drawn SVG for the NAV chart and CSS bars for allocation (uPlot was planned and dropped, see milestone 4), WebCrypto for the vault, Vitest.
 
 ### Proxy: one core, three wrappers
 - `proxy/core.ts` — pure `handle(Request) → Response` on web-standard APIs: GET-only, path regex allow-list to `https://mfnav.in/api/(funds|nav|date)/…`, timeout, no cookie/header forwarding, cache headers.
@@ -104,7 +107,7 @@ The README states plainly that anyone deploying publicly must opt in to protecti
 - If `ci.yml` is ever made a required status check, note that GitHub leaves a skipped (path-filtered) required check pending on docs-only PRs; make only `scan` required, or drop the path filter.
 
 ### Modules
-`src/parser/*`, `src/domain/holdings.ts`, `src/domain/xirr.ts`, `src/api/nav.ts`, `src/ui/*`, `proxy/core.ts` + wrappers, `vercel.json` / `_headers` (security headers, CSP).
+`src/parser/*` (statement reader), `src/domain/*` (FIFO holdings, XIRR, allocation, chart geometry, transaction filters), `src/valuation/*` (NAV lookups, quotes, valuation), `src/vault/*` (encrypted store), `src/nav.ts` (proxy client), `src/ui/*`, `proxy/core.ts` + wrappers, `vercel.json` / `_headers` (security headers, CSP).
 
 ## 8. Parser (decided: Option C, in-browser PDF upload from v1)
 Decided: port to TypeScript, run in-browser, keep transaction descriptions, capture closing balance and valuation, drop the hard-coded AMC list, synthetic fixtures only. **Base the port on `codereverser/casparser` (MIT, active: v1.4.1 Aug 2026, last push 2026-09-23, 231★) rather than the old `processCASpdf.py`.** Using casparser as-is was rejected: it needs Python + `pypdfium2` (no WebAssembly wheel on PyPI), so it would mean server-side parsing (breaks the privacy model) or a CLI step for every user (unusable for non-technical family). Comparison:
@@ -157,14 +160,14 @@ Deliberate differences from casparser:
 - Numbers are plain JS numbers with a 0.005 tolerance (as casparser); the spike matched to the last digit.
 - The source is `CAMS`, `KFINTECH`, or `UNKNOWN` (read as CAMS-style, labelled beta); NSDL, CDSL and Summary statements are refused with what to do.
 
-Lessons from testing in a real browser (also in CLAUDE.md's failure log): pdf.js inside our own Worker cannot start its own worker and falls back to running its worker code in our thread, taking over `self.onmessage`; the parser worker therefore hands pdf.js an explicit `PDFWorker` port. Cleanup is on the loading task, not the document. First load is about 9 KB gzip; pdf.js (about 445 KB worker chunk plus 1.27 MB pdf.js worker) loads only when a file is chosen.
+Lessons from testing in a real browser (also in CLAUDE.md's failure log): pdf.js inside our own Worker cannot start its own worker and falls back to running its worker code in our thread, taking over `self.onmessage`; the parser worker therefore hands pdf.js an explicit `PDFWorker` port. Cleanup is on the loading task, not the document. First load was about 9 KB gzip at this milestone (about 18 KB after milestone 5); pdf.js (about 445 KB worker chunk plus 1.27 MB pdf.js worker) loads only when a file is chosen.
 
 ### Testing
 The spike harness (oracle runner, prototype, redacted comparer) contains no data and becomes `tools/parser-oracle/` (dev-only; casparser is a test oracle, never a runtime dependency). Committed tests use synthetic text fixtures with invented names/folios/amounts covering multi-line names, split ISINs, stamp duty rows, dividends, STP, and a KFintech date-twin. Real-file comparison remains a manual local step; the report is counts and masked shapes only.
 
 ## 9. Data Protection & Encryption
 
-Principle: the best protection is not holding the data. **v1 is session-only**: no server storage, nothing persisted in the browser; re-upload each visit (multiple profiles = multiple files in one session).
+Principle: the best protection is not holding the data. **By default the app is session-only**: no server storage, nothing persisted in the browser; re-upload each visit (multiple profiles = multiple files in one session). Saving on the device is opt-in (milestone 5, below).
 
 | Layer | Data | Protection |
 |---|---|---|
@@ -172,13 +175,13 @@ Principle: the best protection is not holding the data. **v1 is session-only**: 
 | PDF password | Decrypt password | Memory only, passed to pdf.js, zeroed after parse. Never stored, logged or put in a URL. |
 | Minimisation | Name, PAN, email, address, phone | Dropped at parse time. Keep `{amc, folio (masked to last 4), isin, scheme, txns}`. |
 | In transit | NAV lookups | HTTPS + HSTS. Proxy requests contain only public scheme codes/ISINs. |
-| At rest (v1) | Parsed transactions | Memory only; gone on reload or "Clear data". |
-| At rest (later, opt-in "Remember", after milestone 3) | Parsed transactions | WebCrypto AES-256-GCM; key from user passphrase via PBKDF2-SHA256 (≥ 600k iterations) or Argon2id; random salt and IV per write; non-extractable `CryptoKey` in memory; only ciphertext in IndexedDB. Auto-lock on idle. Encrypted export only. |
-| NAV cache | Public NAV data | IndexedDB, unencrypted, separate store, no PII. |
+| At rest (default) | Parsed transactions | Memory only; gone on reload or when a profile is removed. |
+| At rest (opt-in "Remember on this device", shipped) | Parsed transactions | WebCrypto AES-256-GCM; key from a passphrase of 12+ characters (typed twice) via PBKDF2-SHA256 at 600,000 iterations (Argon2id rejected: needs a third-party WASM package); random salt per vault and random IV per write; non-extractable `CryptoKey` in memory; only ciphertext in one IndexedDB record. "Lock now", a user-chosen idle auto-lock (1, 5, 15 or 60 minutes) and reload drop the key and the data. Encrypted export and import are deferred. |
+| NAV cache | Public NAV data | In memory for the session only (IndexedDB is used for the vault alone); no PII. |
 | Server/proxy | Stateless | No DB, no storage, logs path + status only. Optional access gate per §7. |
 | App integrity | XSS / supply chain | CSP `default-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'`; no third-party scripts/CDNs; pdf.js worker bundled; lockfile, pinned versions, `npm audit` in CI; `Referrer-Policy: no-referrer`. |
 
-Threat model: protects against repo/CDN leaks, server/log compromise, network sniffing, disk inspection (once encrypted persistence exists). Does not protect against XSS or malicious extensions on the same origin (mitigated by CSP and no third-party code), device malware, weak passphrases, or shared computers (use session-only). Forgotten passphrase = data unrecoverable; re-upload the CAS.
+Threat model: protects against repo/CDN leaks, server/log compromise, network sniffing, disk inspection of the saved data. Does not protect against XSS or malicious extensions on the same origin (mitigated by CSP and no third-party code), device malware, weak passphrases, or shared computers (do not enable "Remember" there). Forgotten passphrase = data unrecoverable; re-upload the CAS.
 
 ## 10. Milestones (each shippable)
 1. **Done (2026-09-29, local verification).** Scaffold + shared proxy core + Cloudflare, Vercel and local wrappers; "look up a NAV" page; `smoke.sh`; CI with typecheck, tests, audit, PII scan; pre-commit PII hook. Verified: 48 unit tests; smoke test passes against the local server and Cloudflare's local runtime (Wrangler) with live mfnav.in; headless Chromium run shows no CSP violations and zero external requests. **Not yet verified:** a real deploy on Cloudflare Pages and Vercel (the Vercel wrapper and gate are unit-tested only, since `vercel dev` needs a login); run `scripts/smoke.sh <url>` after the first deploy on each.
@@ -198,15 +201,18 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 ## 12. Risks
 - CAS layout variations → CAMS is validated on real statements (spike: 4 statements; finished parser: 2 statements, 1,636 of 1,636 transactions). KFintech-generated statements are untested (beta). The reconciliation check and the excluded-scheme banner catch what a new layout would silently break.
 - Real statements hold text the synthetic fixtures do not: payment references in descriptions leaked through until the real-file check found them. Re-run `tools/parser-oracle` and read its privacy line whenever the parser keeps another piece of text.
-- mfnav.in availability or shared-IP rate limits across many deployments → edge cache, IndexedDB NAV cache, backoff, low concurrency, stale-NAV badge; proxy is the single swap point for a later AMFI fallback.
+- mfnav.in availability or shared-IP rate limits across many deployments → edge cache, in-memory session NAV cache, low concurrency, stale-NAV badge; proxy is the single swap point for a later AMFI fallback.
 - Fund merges/renames/ISIN changes → manual scheme-code override.
 - Licence compliance for ported code → `NOTICE` file, no AGPL sources. **Do not copy from `processCASpdf.py`**: it derives from `camspdf.py`, which is GPL-3.0 (its own LICENSE file says MIT and its header says BSD, so it is inconsistent). The parser is based on casparser (MIT) and the spike prototype was written from that design. With no camspdf-derived code, the original reason for BSD-3-Clause (Q19) no longer applied, so the project licence was changed to **MIT** (decision after Q24, 2026-09-29), matching casparser.
 
 ## 13. Decision log (grilling Q1–Q24)
-Profiles: multiple, separate (Q1) · latest CAS wins (Q2) · public URL with optional gate, no baked PDF (Q3) · session-only v1 (Q4) · real-file acceptance, XIRR headline (Q5) · gate mechanism per host (Q6, Q22) · TypeScript port, in-browser (Q7) · real PDFs local spike only, synthetic fixtures committed (Q8) · mfnav-only scheme lookup (Q9) · FIFO/switch/dividend/stamp rules (Q10) · Preact + uPlot + SVG (Q11) · CAMS/KFin detailed only (Q12) · closed positions in XIRR, collapsed (Q13) · per-fund NAV chart + allocation (Q14) · flag and exclude failed folios (Q15) · public repo, CI scans (Q16, Q19) · INR, system theme, mobile-first (Q17) · Cloudflare + Vercel + local (Q18) · Node local run (Q20) · shared proxy core, core tests only in CI (Q21) · no second NAV source (Q23) · footer disclaimer (Q24).
+Profiles: multiple, separate (Q1) · latest CAS wins (Q2) · public URL with optional gate, no baked PDF (Q3) · session-only v1 (Q4; opt-in encrypted store added in milestone 5) · real-file acceptance, XIRR headline (Q5) · gate mechanism per host (Q6, Q22) · TypeScript port, in-browser (Q7) · real PDFs local spike only, synthetic fixtures committed (Q8) · mfnav-only scheme lookup (Q9) · FIFO/switch/dividend/stamp rules (Q10) · Preact + uPlot + SVG (Q11; uPlot replaced by hand-drawn SVG in milestone 4) · CAMS/KFin detailed only (Q12) · closed positions in XIRR, collapsed (Q13) · per-fund NAV chart + allocation (Q14) · flag and exclude failed folios (Q15) · public repo, CI scans (Q16, Q19) · INR, system theme, mobile-first (Q17) · Cloudflare + Vercel + local (Q18) · Node local run (Q20) · shared proxy core, core tests only in CI (Q21) · no second NAV source (Q23) · footer disclaimer (Q24).
 
 ## 14. Open questions
 1. Obtain a real KFintech-generated detailed CAS with a known password and run it through the same tool (removes the "beta" label).
 2. First deploy on Cloudflare Pages and Vercel, then `scripts/smoke.sh <url>` on each.
+3. Measure the 3 s warm budget for a 30-fund portfolio on a deployed host (13 funds took 5.1 s cold, at two lookups per fund), and run Lighthouse (§11).
+4. Merge a limited-range statement into an existing profile (§4.2), or decide replace-only is enough.
+5. Decide whether a single clear-all button is needed beyond per-profile removal and the vault's delete (§4.10).
 
 Resolved since the grilling session: parser is a TypeScript port of casparser (Option C); PDF upload from v1; KFintech-generated statements ship as beta (Option B).

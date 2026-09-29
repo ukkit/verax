@@ -72,7 +72,8 @@ second safety net besides GitHub Actions. No environment variables are required.
 ### Vercel
 
 1. Import the repository. Vercel detects Vite; the defaults work.
-2. The proxy is `api/[...path].ts`; security headers, the build command and the function region (`bom1`, Mumbai,
+2. The proxy is `api/proxy.ts`, reached through a rewrite in `vercel.json` (Vercel routes a catch-all file only one path
+   segment); security headers, the build command and the function region (`bom1`, Mumbai,
    for Indian users; change `regions` in `vercel.json` to suit yours) come from `vercel.json`.
 3. Protect the site. Vercel's built-in password protection is a paid feature. Instead, set `SITE_USER` and
    `SITE_PASS` in the project's environment variables. `middleware.ts` then requires Basic Auth for the page and `/api`. The hashed JS/CSS
@@ -105,7 +106,7 @@ PAN numbers and real email addresses.
 | `tools/valuation-check/` | Dev-only check of holdings and valuation against your own statement's figures ([guide](docs/valuation-check.md)) |
 | `proxy/core.ts` | The one proxy implementation, with tests |
 | `functions/api/[[path]].ts` | Cloudflare Pages wrapper |
-| `api/[...path].ts`, `middleware.ts` | Vercel wrapper and optional Basic Auth gate |
+| `api/proxy.ts`, `middleware.ts` | Vercel wrapper (with the `vercel.json` rewrite) and optional Basic Auth gate |
 | `server/local.ts` | Local Node server (static files + proxy, localhost only) |
 | `scripts/` | Repo scan, hook setup, deployment smoke test |
 

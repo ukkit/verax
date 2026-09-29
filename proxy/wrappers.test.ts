@@ -24,10 +24,17 @@ describe('Cloudflare Pages Function wrapper', () => {
 
 describe('Vercel Function wrapper', () => {
   it('exports a fetch handler that delegates to the proxy core', async () => {
-    const mod = await import('../api/[...path]');
+    const mod = await import('../api/proxy');
     expect(typeof mod.default.fetch).toBe('function');
     expect((await mod.default.fetch(new Request('https://x.example/api/evil/1'))).status).toBe(400);
     expect((await mod.default.fetch(new Request('https://x.example/api/funds/1', { method: 'POST' }))).status).toBe(405);
+  });
+
+  it('reads the path from the rewrite vercel.json sends every /api request through', async () => {
+    const mod = await import('../api/proxy');
+    expect((await mod.default.fetch(new Request('https://x.example/api/proxy?__path=evil%2F1'))).status).toBe(400);
+    expect((await mod.default.fetch(new Request('https://x.example/api/proxy?__path=funds%2F1&path=funds%2F1', { method: 'POST' }))).status).toBe(405);
+
   });
 });
 

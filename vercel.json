@@ -4,6 +4,12 @@
   "regions": [
     "bom1"
   ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/proxy?__path=:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

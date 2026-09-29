@@ -9,6 +9,8 @@
   --accent-text: #ffffff;
   --up: #15803d;
   --down: #b91c1c;
+  --warn-bg: #fdecec;
+  --note-bg: #eef6f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +24,8 @@
     --accent-text: #06231f;
     --up: #4ade80;
     --down: #f87171;
+    --warn-bg: #3a1f1f;
+    --note-bg: #16302d;
   }
 }
 
@@ -138,7 +142,7 @@ button:disabled {
   background: var(--surface);
 }
 
-.funds h2 {
+.funds h3 {
   margin: 0;
   font-size: 1.05rem;
 }
@@ -177,4 +181,186 @@ footer {
   text-align: center;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+/* Panels and section headings */
+.panel {
+  margin: 0 0 2rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* Statement upload */
+.drop {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px dashed var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.drop.dragging {
+  border-color: var(--accent);
+}
+
+.drop .hint {
+  margin: 0;
+}
+
+.drop button {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+.picked {
+  margin: 0;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Notices */
+.banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--note-bg);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+.banner.error {
+  background: var(--warn-bg);
+  border-color: var(--down);
+}
+
+.banner ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* Scheme table: a real table on wide screens, labelled cards on narrow ones */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.schemes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+table.schemes th,
+table.schemes td {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+table.schemes th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+table.schemes .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+tr.excluded {
+  background: var(--warn-bg);
+}
+
+.ok {
+  color: var(--up);
+}
+
+.bad {
+  color: var(--down);
+  cursor: pointer;
+}
+
+table.schemes details ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 44rem) {
+  table.schemes thead {
+    position: absolute;
+    left: -9999px;
+  }
+
+  table.schemes,
+  table.schemes tbody,
+  table.schemes tr,
+  table.schemes td {
+    display: block;
+    width: 100%;
+  }
+
+  table.schemes tr {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+  }
+
+  table.schemes td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.25rem 0.25rem;
+    text-align: right;
+  }
+
+  table.schemes td::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  table.schemes td[data-label='Scheme'] {
+    display: block;
+    text-align: left;
+  }
+
+  table.schemes td[data-label='Scheme']::before {
+    content: none;
+  }
 }

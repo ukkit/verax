@@ -6,9 +6,9 @@ Verax is a mutual fund portfolio dashboard for India. It reads your CAS (Consoli
 your browser** and values your holdings with live NAVs from [mfnav.in](https://mfnav.in). No database, no accounts,
 and your statement is never uploaded. The name is Latin for "truthful".
 
-> **Status: milestone 1.** The scaffold, the NAV proxy, and deployment on Cloudflare Pages, Vercel or your own
-> machine are done. The page currently looks up a fund's NAV. Statement upload, holdings and XIRR come next.
-> See [PRD](docs/PRD.md) for the full plan and the decisions behind it.
+> **Status: milestone 2.** You can open a CAMS or KFintech "Detailed" statement: it is read in your browser, checked
+> against its own running balances, and summarised per scheme. A NAV lookup runs through the shared proxy. Holdings,
+> returns (XIRR) and live valuation come next. KFintech statements are in beta. See [PRD](docs/PRD.md) for the plan.
 
 ## Run it locally
 
@@ -66,7 +66,8 @@ PAN numbers and real email addresses.
 
 | Path | Purpose |
 |---|---|
-| `src/` | Preact app (Vite) |
+| `src/` | Preact app (Vite): `ui/` components, `parser/` the statement reader (runs in a Web Worker) |
+| `tools/parser-oracle/` | Dev-only check of the parser against casparser on your own statements ([guide](docs/parser-oracle.md)) |
 | `proxy/core.ts` | The one proxy implementation, with tests |
 | `functions/api/[[path]].ts` | Cloudflare Pages wrapper |
 | `api/[...path].ts`, `middleware.ts` | Vercel wrapper and optional Basic Auth gate |
@@ -88,4 +89,5 @@ with your AMC or your CAS before acting.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). The parser is a TypeScript port of parts of casparser (MIT) and the site bundles PDF.js
+(Apache-2.0); see [NOTICE](NOTICE).

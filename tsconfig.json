@@ -32,6 +32,7 @@
     "functions",
     "middleware.ts",
     "vite.config.ts",
-    "scripts"
+    "scripts",
+    "tools"
   ]
 }

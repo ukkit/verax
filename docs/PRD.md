@@ -2,7 +2,19 @@
 
 Name: **Verax** (Latin *verax*, "truthful"). Tagline: **"The true return on your funds."** Chosen 2026-09-29 after a naming exploration (English, Hindi/Sanskrit and invented Latin-root candidates); shortlisted alternatives were Cask, Tenax, Ganak and Freehold. Domain, GitHub and npm availability were deliberately not checked, so confirm them before publishing.
 
-Status: Decisions confirmed (grilling session, Q1–Q24) · Parser approach decided (Option C, §8) and pdf.js spike passed for CAMS statements · Date: 2026-09-29
+Status: Milestones 1 and 2 done (parser validated on synthetic statements, in a real browser, and on two real CAMS statements) · Decisions confirmed (grilling session, Q1–Q24) · Date: 2026-09-29
+
+## Progress (2026-09-29)
+
+| # | Milestone | Status | Evidence |
+|---|---|---|---|
+| 1 | Scaffold, shared proxy, three hosts, CI, PII guard | **Done** | Smoke tests on the local server and Cloudflare's runtime; not yet deployed on either host |
+| 2 | Statement parser, worker, upload UI, reconciliation | **Done** | 194 tests; 22 browser checks; 1,636 of 1,636 real transactions matched casparser; privacy check clean |
+| 3 | Holdings (FIFO), XIRR, live NAV valuation, closed positions, profiles | **Next** | See §10 |
+| 4 | Charts, transaction view, stale-NAV badge, polish | Not started | |
+| 5 | Encrypted "Remember on this device", auto-lock | Not started | |
+
+Open items: a real KFintech statement to lift the beta label, and the first real deploy on Cloudflare Pages and Vercel (§14).
 
 ## 1. Problem & Goal
 Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF has full transaction history but no live valuation or returns view. Build a dashboard that reads a CAS PDF in the browser, values holdings with current NAVs from mfnav.in, and shows portfolio value, gains, and XIRR. It deploys in minutes on free hosting (Cloudflare Pages or Vercel), or runs locally, with no database.
@@ -28,7 +40,7 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 6. Closed (fully redeemed) positions: always included in XIRR; hidden by default in a collapsed "Closed positions" section showing realised gain (proceeds minus FIFO cost, not a tax report).
 7. Charts: per-fund NAV history (1Y, 3Y, since first purchase) with buy/sell markers; allocation by category and AMC.
 8. Transaction list with filters (fund, type, date).
-9. Failure handling: continue and flag. A banner shows how many folios failed reconciliation; each is marked and **excluded from totals**, and the banner lists which. No debug export.
+9. Failure handling: continue and flag. A banner shows how many schemes failed reconciliation (the level at which a statement prints a closing balance); each is marked and **excluded from totals**, and the banner lists which. No debug export.
 10. Clear-data button. Permanent disclaimer footer (§6).
 
 ### Out (v1) / later
@@ -42,7 +54,7 @@ Investors hold funds across AMCs; the CAS (Consolidated Account Statement) PDF h
 - **Dividends**: IDCW payouts are cash inflows on their date; reinvested IDCW are buys with no new cash out.
 - **Stamp duty / STT / TDS**: stamp duty is added to the cost of the purchase it belongs to.
 - **XIRR**: Newton with bisection fallback; current value as terminal inflow; closed folios included.
-- **Acceptance**: per-folio computed closing units equal the CAS closing balance exactly; total value within 0.1% of the CAS valuation (allowing for NAV date differences).
+- **Acceptance**: per-scheme computed closing units equal the CAS closing balance exactly; total value within 0.1% of the CAS valuation (allowing for NAV date differences).
 
 ## 6. Non-Functional Requirements
 - **Privacy/Security**: see §9.
@@ -134,6 +146,19 @@ Lessons that shape the implementation:
 - Classification, opening/closing balance and valuation extraction, sign fixes and `parse_warnings` equivalents (the prototype only proves row and column reading).
 - Summary (non-detailed) CAS and NSDL/CDSL are out of scope for v1.
 
+### Implementation (milestone 2)
+`src/parser/`: `layout` (items to lines, overlay dedupe) · `columns` (number columns from the data) · `classify`, `header`, `reconcile`, `detect`, `cams` (casparser ports) · `extract` (pdf.js adapter, error mapping) · `run`, `worker`, `client` (Web Worker, one worker per parse, terminated after) · `summary`. UI in `src/ui/`. All parser code is pure and unit-tested; `testing/` holds a synthetic-statement builder and a tiny PDF writer (test-only, never bundled).
+
+Deliberate differences from casparser:
+- **Privacy at parse time:** investor name, PAN, email, address, nominees and advisor are never read. Folio numbers are kept as their last four digits, including a counterparty folio inside a gift transfer's description (a test caught this leak). Any run of 8+ digits in a description (payment, UTR, cheque references) is masked to its last four; real statements contained dozens that the synthetic fixtures did not.
+- **Hyphenated investor names** ("ANNE-MARIE SAMPLE") are recognised and skipped so they cannot be mistaken for a scheme line.
+- **Reconciliation is per scheme**, and a scheme that fails is excluded from totals; unreadable scheme blocks surface as statement-level warnings instead of vanishing.
+- Columns come from the data (right-edge clusters), not the header row, and accept a 3-column layout when the price column is missing.
+- Numbers are plain JS numbers with a 0.005 tolerance (as casparser); the spike matched to the last digit.
+- The source is `CAMS`, `KFINTECH`, or `UNKNOWN` (read as CAMS-style, labelled beta); NSDL, CDSL and Summary statements are refused with what to do.
+
+Lessons from testing in a real browser (also in CLAUDE.md's failure log): pdf.js inside our own Worker cannot start its own worker and falls back to running its worker code in our thread, taking over `self.onmessage`; the parser worker therefore hands pdf.js an explicit `PDFWorker` port. Cleanup is on the loading task, not the document. First load is about 9 KB gzip; pdf.js (about 445 KB worker chunk plus 1.27 MB pdf.js worker) loads only when a file is chosen.
+
 ### Testing
 The spike harness (oracle runner, prototype, redacted comparer) contains no data and becomes `tools/parser-oracle/` (dev-only; casparser is a test oracle, never a runtime dependency). Committed tests use synthetic text fixtures with invented names/folios/amounts covering multi-line names, split ISINs, stamp duty rows, dividends, STP, and a KFintech date-twin. Real-file comparison remains a manual local step; the report is counts and masked shapes only.
 
@@ -157,20 +182,21 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 
 ## 10. Milestones (each shippable)
 1. **Done (2026-09-29, local verification).** Scaffold + shared proxy core + Cloudflare, Vercel and local wrappers; "look up a NAV" page; `smoke.sh`; CI with typecheck, tests, audit, PII scan; pre-commit PII hook. Verified: 48 unit tests; smoke test passes against the local server and Cloudflare's local runtime (Wrangler) with live mfnav.in; headless Chromium run shows no CSP violations and zero external requests. **Not yet verified:** a real deploy on Cloudflare Pages and Vercel (the Vercel wrapper and gate are unit-tested only, since `vercel dev` needs a login); run `scripts/smoke.sh <url>` after the first deploy on each.
-2. Parser (spike done for CAMS, §8) → productionise the prototype in TypeScript: classification (port of casparser `_classify`), opening/closing balance and valuation, reconciliation flagging, synthetic fixtures, upload/unlock UI. KFintech-generated statements stay beta until a real sample is tested.
-3. Holdings (FIFO), XIRR, summary with live NAV, closed positions, profiles.
+2. **Done (2026-09-29, synthetic + browser verification).** Parser in `src/parser/` (TypeScript port of casparser), Web Worker, upload/unlock UI with per-scheme summary, reconciliation flags and the KFintech beta notice. Verified: 194 tests in total, including the real pdf.js on a generated PDF; a headless Chromium run (22 checks) on both the local server and Cloudflare's runtime: upload, banners, encrypted PDF (missing, wrong, right password), NSDL refusal, no request leaving the origin, no console errors. **Real-statement check passed (2026-09-29):** on two real CAMS statements (37 and 30 schemes) the parser matched casparser on 1,636 of 1,636 transactions with 0 missing and 0 extra, all transaction types, closing balances, valuation lines, ISINs, scheme names and folio last-four agreed, the reconcile flags agreed, and the source was detected as CAMS. The privacy check first found 53 and 19 runs of 8+ digits (payment references in descriptions); after masking them it is clean.
+3. **Next.** Holdings (FIFO lots, average cost derived), XIRR (Newton with bisection fallback; closed folios included), live NAV valuation via mfnav.in by ISIN (cached, stale-NAV badge, manual scheme-code override for unmapped funds), closed positions in a collapsed section with realised gain, and several profiles kept separate. Builds on `Statement` from milestone 2; only reconciled schemes enter totals. Acceptance: total value within 0.1% of the statement's own valuation, allowing for NAV date differences, checked on the real statements with a tool like `tools/parser-oracle`.
 4. Charts (per-fund NAV, allocation), transaction view, stale-NAV badge, footer, polish.
 5. Encrypted "Remember on this device" + auto-lock.
 
 ## 11. Acceptance / Verification
 - Vitest: parser fixtures, transaction classification, FIFO, XIRR vs known values, proxy core.
 - `curl <base>/api/nav/119551` returns `latest_nav` on Cloudflare, Vercel and local; non-allow-listed paths return 400.
-- Real CAS: per-folio closing units exact; total value within 0.1% of CAS valuation.
+- Real CAS: per-scheme closing units exact; total value within 0.1% of CAS valuation.
 - Network tab: no PDF content or folio/amount data transmitted; only `/api/nav/*`.
 - Repo scan finds no PDF, PAN pattern or email; CSP report clean; Lighthouse ≥ 90 perf/best-practices.
 
 ## 12. Risks
-- CAS layout variations / pdf.js differing from pdfium → CAMS validated by spike (100% match on 4 statements); KFintech-generated statements untested (beta); fixtures + reconciliation with excluded-folio banner cover the rest.
+- CAS layout variations → CAMS is validated on real statements (spike: 4 statements; finished parser: 2 statements, 1,636 of 1,636 transactions). KFintech-generated statements are untested (beta). The reconciliation check and the excluded-scheme banner catch what a new layout would silently break.
+- Real statements hold text the synthetic fixtures do not: payment references in descriptions leaked through until the real-file check found them. Re-run `tools/parser-oracle` and read its privacy line whenever the parser keeps another piece of text.
 - mfnav.in availability or shared-IP rate limits across many deployments → edge cache, IndexedDB NAV cache, backoff, low concurrency, stale-NAV badge; proxy is the single swap point for a later AMFI fallback.
 - Fund merges/renames/ISIN changes → manual scheme-code override.
 - Licence compliance for ported code → `NOTICE` file, no AGPL sources. **Do not copy from `processCASpdf.py`**: it derives from `camspdf.py`, which is GPL-3.0 (its own LICENSE file says MIT and its header says BSD, so it is inconsistent). The parser is based on casparser (MIT) and the spike prototype was written from that design. With no camspdf-derived code, the original reason for BSD-3-Clause (Q19) no longer applied, so the project licence was changed to **MIT** (decision after Q24, 2026-09-29), matching casparser.
@@ -179,7 +205,7 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 Profiles: multiple, separate (Q1) · latest CAS wins (Q2) · public URL with optional gate, no baked PDF (Q3) · session-only v1 (Q4) · real-file acceptance, XIRR headline (Q5) · gate mechanism per host (Q6, Q22) · TypeScript port, in-browser (Q7) · real PDFs local spike only, synthetic fixtures committed (Q8) · mfnav-only scheme lookup (Q9) · FIFO/switch/dividend/stamp rules (Q10) · Preact + uPlot + SVG (Q11) · CAMS/KFin detailed only (Q12) · closed positions in XIRR, collapsed (Q13) · per-fund NAV chart + allocation (Q14) · flag and exclude failed folios (Q15) · public repo, CI scans (Q16, Q19) · INR, system theme, mobile-first (Q17) · Cloudflare + Vercel + local (Q18) · Node local run (Q20) · shared proxy core, core tests only in CI (Q21) · no second NAV source (Q23) · footer disclaimer (Q24).
 
 ## 14. Open questions
-1. Obtain a real KFintech-generated detailed CAS with a known password and run it through the parser oracle (removes the "beta" label).
-2. When to start milestone 1 (scaffold + proxy on Cloudflare, Vercel and local)?
+1. Obtain a real KFintech-generated detailed CAS with a known password and run it through the same tool (removes the "beta" label).
+2. First deploy on Cloudflare Pages and Vercel, then `scripts/smoke.sh <url>` on each.
 
 Resolved since the grilling session: parser is a TypeScript port of casparser (Option C); PDF upload from v1; KFintech-generated statements ship as beta (Option B).

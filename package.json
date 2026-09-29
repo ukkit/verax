@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@vercel/functions": "3.9.9",
+    "pdfjs-dist": "6.3.289",
     "preact": "10.29.8"
   },
   "devDependencies": {

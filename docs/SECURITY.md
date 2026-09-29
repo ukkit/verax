@@ -7,8 +7,8 @@ goal is to not hold that data anywhere it can leak.
 
 | Data | Where it goes |
 |---|---|
-| Your CAS PDF and its password | Nowhere. Read in your browser only (from milestone 2). Never uploaded, never stored on a server. |
-| Parsed transactions | Browser memory only in v1. Nothing is persisted between visits. |
+| Your CAS PDF and its password | Nowhere. Read in a Web Worker in your browser. Never uploaded, never stored. The password is used once to open the file; the worker is terminated after every parse, so neither the password nor the extracted text outlives it. |
+| Parsed transactions | Browser memory only in v1. Nothing is persisted between visits. The parser never reads the investor's name, PAN, email, address, nominees or advisor codes; folio numbers, including other folios named in a gift transfer, are kept only as their last four digits. |
 | NAV lookups | Your browser calls this site's own `/api/*`, which forwards to mfnav.in. Only public scheme codes, ISINs and dates are sent. |
 
 ## The proxy (`proxy/core.ts`)

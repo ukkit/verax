@@ -1,6 +1,6 @@
 {
   "name": "verax",
-  "version": "0.1790663080.0",
+  "version": "0.1790663683.0",
   "private": true,
   "description": "Verax: the true return on your funds. Reads a CAS PDF in the browser and values it with live NAVs from mfnav.in",
   "license": "MIT",

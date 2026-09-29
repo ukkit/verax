@@ -8,8 +8,27 @@ goal is to not hold that data anywhere it can leak.
 | Data | Where it goes |
 |---|---|
 | Your CAS PDF and its password | Nowhere. Read in a Web Worker in your browser. Never uploaded, never stored. The password is used once to open the file; the worker is terminated after every parse, so neither the password nor the extracted text outlives it. |
-| Parsed transactions | Browser memory only in v1. Nothing is persisted between visits. The parser never reads the investor's name, PAN, email, address, nominees or advisor codes; folio numbers, including other folios named in a gift transfer, are kept only as their last four digits. |
+| Parsed transactions | Browser memory by default; nothing is persisted between visits. Only if you choose "Remember on this device" are they also saved, encrypted (see below). The parser never reads the investor's name, PAN, email, address, nominees or advisor codes; folio numbers, including other folios named in a gift transfer, are kept only as their last four digits. |
 | NAV lookups | Your browser calls this site's own `/api/*`, which forwards to mfnav.in. Only public scheme codes, ISINs and dates are sent. |
+
+## Remembering statements on a device (opt-in)
+
+Off by default. When you choose "Remember on this device", every profile's parsed statement (the same masked data as in
+memory, never the PDF or its password) is encrypted in the browser and stored in IndexedDB.
+
+- **Key:** your passphrase (at least 12 characters, typed twice) goes through PBKDF2-HMAC-SHA256 with 600,000 iterations
+  and a random 16-byte salt to an AES-256-GCM key. The key is a non-extractable `CryptoKey` held in memory only while the
+  data is unlocked. The passphrase is used once and not kept.
+- **Record:** version, iteration count, salt, IV and ciphertext. Nothing else, so profile names and folios are not readable
+  from disk. Every save uses a fresh random IV. The salt is per vault, not per save (a new salt would need the passphrase
+  again on every save).
+- **Lock:** "Lock now", an idle timeout you choose (1, 5, 15 or 60 minutes) and reloading the page all drop the key and every
+  statement from memory. Unlocking needs the passphrase again.
+- **Forgotten passphrase:** the data cannot be recovered. Delete it and upload the statements again. Wrong passphrases and
+  damaged records fail identically.
+- **Not covered:** a malicious extension or XSS on this origin while unlocked, malware, a weak passphrase, and shared
+  computers (do not enable it there). The NAV cache holds public data only and is separate.
+- There is no encrypted export or import yet.
 
 ## The proxy (`proxy/core.ts`)
 

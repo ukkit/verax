@@ -2,13 +2,23 @@
 
 **The true return on your funds.**
 
-Verax is a mutual fund portfolio dashboard for India. It reads your CAS (Consolidated Account Statement) PDF **in
-your browser** and values your holdings with live NAVs from [mfnav.in](https://mfnav.in). No database, no accounts,
-and your statement is never uploaded. The name is Latin for "truthful".
+Verax is a mutual fund portfolio dashboard for India. It reads your CAS (Consolidated Account Statement) PDF in your
+browser and values your holdings with live NAVs from [mfnav.in](https://mfnav.in). It has no database or accounts, and
+your statement is never uploaded. The name is Latin for "truthful".
 
-> **Status: milestone 2.** You can open a CAMS or KFintech "Detailed" statement: it is read in your browser, checked
-> against its own running balances, and summarised per scheme. A NAV lookup runs through the shared proxy. Holdings,
-> returns (XIRR) and live valuation come next. KFintech statements are in beta. See [PRD](docs/PRD.md) for the plan.
+## What it does
+
+- Opens a CAMS or KFintech "Detailed" statement in your browser and checks every scheme against its own running balances.
+  A scheme that does not add up is left out of every total, with the reason shown. KFintech statements are in beta.
+- Values your holdings with live NAVs from mfnav.in, matched by ISIN. A fund that cannot be matched can be given a scheme
+  code by hand, and is valued at the statement's own NAV until then.
+- Shows value, invested amount (FIFO), gain, day change and XIRR per fund and for the whole portfolio, with closed
+  positions included in the return and kept in their own section.
+- Keeps several profiles separate, draws a NAV chart per fund with your purchases and sales marked, shows allocation by
+  category and fund house, and lists every transaction with filters.
+- Optionally remembers your statements on the device, encrypted with a passphrase, and locks itself when idle.
+
+See the [PRD](docs/PRD.md) for the plan and decisions.
 
 ## Run it locally
 
@@ -37,7 +47,7 @@ second safety net besides GitHub Actions. No environment variables are required.
    Cloudflare does not cache Function responses on its own, so the wrapper stores them in the Cache API (per data
    center). Cloudflare documents that API as unavailable behind Cloudflare Access for Workers, and does not say either
    way for Pages, so after enabling Access, check the second request to `/api/funds/119551` is fast (a few ms).
-4. **Protect it.** Add a Cloudflare Access application for the site's hostname and allow only your email addresses
+4. Protect the site. Add a Cloudflare Access application for the site's hostname and allow only your email addresses
    (free for up to 50 users).
 
 ### Vercel
@@ -45,7 +55,7 @@ second safety net besides GitHub Actions. No environment variables are required.
 1. Import the repository. Vercel detects Vite; the defaults work.
 2. The proxy is `api/[...path].ts`; security headers, the build command and the function region (`bom1`, Mumbai,
    for Indian users; change `regions` in `vercel.json` to suit yours) come from `vercel.json`.
-3. **Protect it.** Vercel's built-in password protection is a paid feature. Instead, set `SITE_USER` and
+3. Protect the site. Vercel's built-in password protection is a paid feature. Instead, set `SITE_USER` and
    `SITE_PASS` in the project's environment variables. `middleware.ts` then requires Basic Auth for the page and `/api`. The hashed JS/CSS
    under `/assets` is public code and is not gated. Without the variables the gate is off.
 
@@ -57,8 +67,10 @@ scripts/smoke.sh https://your-site.example       # add SMOKE_AUTH='user:pass' if
 
 ## Privacy in one paragraph
 
-Your statement and its password are handled only in your browser and are never sent anywhere. The server side is a
-tiny proxy that forwards public NAV requests to mfnav.in. Details, limits and the threat model are in
+Your statement and its password are handled only in your browser and are never sent anywhere. By default nothing is
+kept after you close the tab; if you choose "Remember on this device", the parsed statements are saved encrypted
+(AES-256-GCM, key from your passphrase), and a forgotten passphrase cannot be recovered. The server side is a tiny proxy
+that forwards public NAV requests to mfnav.in. Details, limits and the threat model are in
 [docs/SECURITY.md](docs/SECURITY.md). Do not commit statements: `*.pdf` is ignored, and a pre-commit hook plus CI reject PDFs,
 PAN numbers and real email addresses.
 
@@ -67,7 +79,11 @@ PAN numbers and real email addresses.
 | Path | Purpose |
 |---|---|
 | `src/` | Preact app (Vite): `ui/` components, `parser/` the statement reader (runs in a Web Worker) |
+| `src/domain/` | Holdings (FIFO), XIRR, allocation, chart geometry and transaction filters; pure and unit-tested |
+| `src/valuation/` | Live NAV lookups (ISIN to scheme code, cached, at most 4 at a time) and portfolio valuation |
+| `src/vault/` | The opt-in encrypted store: PBKDF2-SHA256 and AES-256-GCM through WebCrypto, kept in IndexedDB |
 | `tools/parser-oracle/` | Dev-only check of the parser against casparser on your own statements ([guide](docs/parser-oracle.md)) |
+| `tools/valuation-check/` | Dev-only check of holdings and valuation against your own statement's figures ([guide](docs/valuation-check.md)) |
 | `proxy/core.ts` | The one proxy implementation, with tests |
 | `functions/api/[[path]].ts` | Cloudflare Pages wrapper |
 | `api/[...path].ts`, `middleware.ts` | Vercel wrapper and optional Basic Auth gate |
@@ -77,7 +93,7 @@ PAN numbers and real email addresses.
 ## Development
 
 ```bash
-npm test          # unit tests (proxy, headers parity across hosts, repo scan)
+npm test          # unit tests (parser, holdings, valuation, vault, proxy, headers parity across hosts)
 npm run typecheck
 npm run scan      # PDF / PAN / email check over the working tree
 ```

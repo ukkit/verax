@@ -1,0 +1,24 @@
+name: Personal data scan
+
+# Fails if the repo contains a PDF, a PAN-shaped number or a real-looking email address.
+# Needs no install (plain Node, no dependencies), so it takes seconds and runs on every push and PR,
+# including docs-only changes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/scan-pii.mjs

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Blocks commits that contain PDFs, PAN-shaped numbers or real-looking email addresses.
+exec node scripts/scan-pii.mjs --staged

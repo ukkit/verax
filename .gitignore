@@ -1,0 +1,20 @@
+node_modules/
+dist/
+dist-server/
+coverage/
+.vercel/
+.wrangler/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Statements and anything derived from them must never be committed
+*.pdf
+*.oracle.json
+*.proto.json
+cas*.json
+
+# Local-only agent files (CLAUDE.md is not published; .memory/ is a working aid)
+CLAUDE.md
+.memory/

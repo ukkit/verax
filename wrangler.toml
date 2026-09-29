@@ -1,0 +1,7 @@
+# Cloudflare Pages configuration. Build command: `npm test && npm run build`. The Pages Function lives in functions/.
+# `name` becomes the public <name>.pages.dev address when deployed with Wrangler. It has not been checked for
+# availability, and Cloudflare will say if it is taken when you create the project; a suffix such as
+# "verax-app" is fine.
+name = "verax"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-09-01"

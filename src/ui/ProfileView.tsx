@@ -3,10 +3,12 @@ import { buildPortfolio } from '../domain/holdings';
 import { summarize } from '../parser/summary';
 import type { SourceKind, Statement } from '../parser/types';
 import type { Overrides } from '../valuation/quotes';
-import { valuePortfolio } from '../valuation/value';
+import { staleIds, valuePortfolio } from '../valuation/value';
 import { formatDate } from './format';
+import { Allocation } from './Allocation';
 import { ClosedTable, OpenTable } from './HoldingsTable';
 import { Totals } from './Totals';
+import { Transactions } from './Transactions';
 import { useQuotes } from './useQuotes';
 
 const BETA: Record<Exclude<SourceKind, 'CAMS'>, string> = {
@@ -20,6 +22,7 @@ export function ProfileView({ label, statement, onClear }: { label: string; stat
   const [overrides, setOverrides] = useState<Overrides>(new Map());
   const { quotes, error } = useQuotes(portfolio.open, overrides);
   const valued = useMemo(() => (quotes ? valuePortfolio(portfolio, quotes) : null), [portfolio, quotes]);
+  const stale = useMemo(() => (valued ? staleIds(valued.open) : new Set<string>()), [valued]);
 
   return (
     <section class="panel" aria-labelledby="profile-heading">
@@ -82,7 +85,8 @@ export function ProfileView({ label, statement, onClear }: { label: string; stat
             </p>
           )}
           <Totals totals={valued.totals} hasClosed={valued.closed.length > 0} />
-          <OpenTable rows={valued.open} onOverride={(id, code) => setOverrides((prev) => new Map(prev).set(id, code))} />
+          <OpenTable rows={valued.open} stale={stale} onOverride={(id, code) => setOverrides((prev) => new Map(prev).set(id, code))} />
+          <Allocation open={valued.open} />
           {valued.closed.length > 0 && (
             <details class="closed">
               <summary>Closed positions ({valued.closed.length})</summary>
@@ -91,6 +95,10 @@ export function ProfileView({ label, statement, onClear }: { label: string; stat
           )}
         </>
       )}
+      <details class="closed">
+        <summary>Transactions</summary>
+        <Transactions statement={statement} />
+      </details>
     </section>
   );
 }

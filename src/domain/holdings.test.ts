@@ -79,6 +79,14 @@ describe('buildPortfolio', () => {
     expect(open[1]).toMatchObject({ units: 4, invested: 0 });
   });
 
+  it('records buys and sells for charting, but not dividends or stamp duty', () => {
+    const { open } = buildPortfolio(statement(scheme([
+      txn('2024-01-10', 'PURCHASE', 10, 999.95), txn('2024-01-10', 'STAMP_DUTY_TAX', null, 0.05),
+      txn('2024-04-10', 'DIVIDEND_PAYOUT', null, 50), txn('2024-05-10', 'REDEMPTION', -4, -450),
+    ])));
+    expect(open[0]!.trades).toEqual([{ date: '2024-01-10', side: 'buy' }, { date: '2024-05-10', side: 'sell' }]);
+  });
+
   it('excludes a scheme that does not reconcile, with a reason', () => {
     const { open, excluded } = buildPortfolio(statement(scheme([txn('2024-01-10', 'PURCHASE', 10, 1000)], { reconciled: false })));
     expect(open).toHaveLength(0);

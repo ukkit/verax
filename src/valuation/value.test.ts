@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Portfolio, Position } from '../domain/holdings';
 import type { PositionQuote } from './quotes';
-import { valuePortfolio } from './value';
+import { staleIds, valuePortfolio } from './value';
 
 const position = (id: string, over: Partial<Position> = {}): Position => ({
   id, folioId: 'f1', amc: 'Sample Mutual Fund', folioMasked: '••••1234', name: `Fund ${id}`, isin: null,
-  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null,
+  units: 10, lots: [], invested: 1000, avgCost: 100, realised: 0, statementNav: null, trades: [],
   flows: [{ date: '2024-01-01', amount: -1000 }], ...over,
 });
 
-const mf = (nav: number, dayChangePct: number | null = null): PositionQuote => ({ quote: { nav, date: '2025-01-01', dayChangePct, from: 'mfnav' }, issue: null });
+const mf = (nav: number, dayChangePct: number | null = null): PositionQuote => ({ quote: { nav, date: '2025-01-01', dayChangePct, from: 'mfnav', schemeCode: 1, category: 'Equity Scheme' }, issue: null });
 const portfolio = (open: Position[], closed: Position[] = []): Portfolio => ({ open, closed, excluded: [] });
 
 describe('valuePortfolio', () => {
@@ -45,5 +45,19 @@ describe('valuePortfolio', () => {
     expect(rows[0]!.xirr).toBeCloseTo(1.2 ** (365 / 366) - 1, 6);
     expect(totals.realised).toBe(200);
     expect(totals.xirr).toBeCloseTo(1.15 ** (365 / 366) - 1, 6); // both 1,000 stakes over the same year: 2,300 back on 2,000
+  });
+});
+
+describe('staleIds', () => {
+  const at = (date: string, from: 'mfnav' | 'statement' = 'mfnav'): PositionQuote => ({ quote: { nav: 10, date, dayChangePct: null, from, schemeCode: null, category: null }, issue: null });
+
+  it('flags a NAV older than the newest live one and any statement NAV, but not the newest', () => {
+    const p = portfolio([position('new'), position('old'), position('stmt'), position('none')]);
+    const quotes = new Map([['new', at('2025-01-03')], ['old', at('2025-01-01')], ['stmt', at('2025-01-03', 'statement')], ['none', { quote: null, issue: 'x' }]]);
+    expect([...staleIds(valuePortfolio(p, quotes).open)].sort()).toEqual(['old', 'stmt']);
+  });
+
+  it('flags nothing when every NAV is the same date', () => {
+    expect(staleIds(valuePortfolio(portfolio([position('a'), position('b')]), new Map([['a', at('2025-01-03')], ['b', at('2025-01-03')]])).open).size).toBe(0);
   });
 });

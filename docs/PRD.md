@@ -2,7 +2,7 @@
 
 Name: **Verax** (Latin *verax*, "truthful"). Tagline: **"The true return on your funds."** Chosen 2026-09-29 after a naming exploration (English, Hindi/Sanskrit and invented Latin-root candidates); shortlisted alternatives were Cask, Tenax, Ganak and Freehold. Domain, GitHub and npm availability were deliberately not checked, so confirm them before publishing.
 
-Status: Milestones 1, 2 and 3 done (parser validated on synthetic statements, in a real browser, and on two real CAMS statements) · Decisions confirmed (grilling session, Q1–Q24) · Date: 2026-09-29
+Status: Milestones 1 to 4 done (parser validated on synthetic statements, in a real browser, and on two real CAMS statements) · Decisions confirmed (grilling session, Q1–Q24) · Date: 2026-09-29
 
 ## Progress (2026-09-29)
 
@@ -11,7 +11,7 @@ Status: Milestones 1, 2 and 3 done (parser validated on synthetic statements, in
 | 1 | Scaffold, shared proxy, three hosts, CI, PII guard | **Done** | Smoke tests on the local server and Cloudflare's runtime; not yet deployed on either host |
 | 2 | Statement parser, worker, upload UI, reconciliation | **Done** | 194 tests; 22 browser checks; 1,636 of 1,636 real transactions matched casparser; privacy check clean |
 | 3 | Holdings (FIFO), XIRR, live NAV valuation, closed positions, profiles | **Done** | 229 tests; browser run (profiles, override, replace, remove, no external requests, no console errors); real-statement check passed (§10) |
-| 4 | Charts, transaction view, stale-NAV badge, polish | Not started | |
+| 4 | Charts, transaction view, stale-NAV badge, polish | **Done** | 243 tests; 11 browser checks (chart with markers, ranges, allocation, filters, badge, no external requests, no console errors); hand-drawn SVG, no chart dependency |
 | 5 | Encrypted "Remember on this device", auto-lock | Not started | |
 
 Open items: a real KFintech statement to lift the beta label, and the first real deploy on Cloudflare Pages and Vercel (§14).
@@ -185,7 +185,7 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 2. **Done (2026-09-29, synthetic + browser verification).** Parser in `src/parser/` (TypeScript port of casparser), Web Worker, upload/unlock UI with per-scheme summary, reconciliation flags and the KFintech beta notice. Verified: 194 tests in total, including the real pdf.js on a generated PDF; a headless Chromium run (22 checks) on both the local server and Cloudflare's runtime: upload, banners, encrypted PDF (missing, wrong, right password), NSDL refusal, no request leaving the origin, no console errors. **Real-statement check passed (2026-09-29):** on two real CAMS statements (37 and 30 schemes) the parser matched casparser on 1,636 of 1,636 transactions with 0 missing and 0 extra, all transaction types, closing balances, valuation lines, ISINs, scheme names and folio last-four agreed, the reconcile flags agreed, and the source was detected as CAMS. The privacy check first found 53 and 19 runs of 8+ digits (payment references in descriptions); after masking them it is clean.
 3. **Done (2026-09-29).** Holdings (FIFO lots, average cost derived), XIRR (Newton with bisection fallback; closed folios included), live NAV valuation via mfnav.in by ISIN (cached, stale-NAV badge, manual scheme-code override for unmapped funds), closed positions in a collapsed section with realised gain, and several profiles kept separate. Builds on `Statement` from milestone 2; only reconciled schemes enter totals. Acceptance: total value within 0.1% of the statement's own valuation, allowing for NAV date differences, checked on the real statements with a tool like `tools/parser-oracle`.
    **Real-statement check passed (2026-09-29, `tools/valuation-check`):** on a real CAMS statement with 13 open and 24 closed schemes, none excluded, FIFO cost and value at the statement's own NAVs both matched the statement (-0.000%), all 13 NAVs came from mfnav.in by ISIN, and the portfolio XIRR was 12.90%. Value at that day's live NAVs differed by -1.346%, which is NAV movement since the statement date. **Not yet measured:** the 3 s warm budget for 30 funds. The 13 funds took 5.1 s cold, directly against mfnav.in from Node, at two lookups per fund and 4 in flight; a warm run through the proxy's edge cache needs a deployed host.
-4. Charts (per-fund NAV, allocation), transaction view, stale-NAV badge, footer, polish.
+4. **Done (2026-09-29).** Per-fund NAV chart (1 year, 3 years, since first purchase) with purchase and sale markers, opened from a holding's row; allocation by category (from mfnav.in) and by fund house; a collapsed Transactions section with scheme, type and date filters, shown 50 rows at a time; an "Older NAV" badge on any NAV older than the newest live NAV in the portfolio, and on statement-NAV fallbacks. Charts are hand-drawn SVG and the allocation is CSS bars, so uPlot (Q11) was not added: it fails the dependency rules (one maintainer, last release March 2025). NAV history is fetched only when a chart is opened, 1,000 rows a page, and cached per scheme and start date. First load is about 15.5 KB gzip.
 5. Encrypted "Remember on this device" + auto-lock.
 
 ## 11. Acceptance / Verification

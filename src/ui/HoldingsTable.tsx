@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { isSchemeCode } from '../nav';
 import type { ValuedPosition } from '../valuation/value';
+import { NavChart } from './NavChart';
 import { formatDate, formatPercent, formatRupees, formatSignedRupees, formatUnits, trend } from './format';
 
 const dash = '—';
@@ -28,7 +29,7 @@ function CodeForm({ onSubmit }: { onSubmit: (code: number) => void }) {
   );
 }
 
-function SchemeCell({ v, onOverride }: { v: ValuedPosition; onOverride?: (id: string, code: number) => void }) {
+function SchemeCell({ v, onOverride, charted, onChart }: { v: ValuedPosition; onOverride?: (id: string, code: number) => void; charted?: boolean; onChart?: () => void }) {
   return (
     <td data-label="Scheme">
       <strong>{v.position.name}</strong>
@@ -37,11 +38,17 @@ function SchemeCell({ v, onOverride }: { v: ValuedPosition; onOverride?: (id: st
       </span>
       {v.issue && <span class="sub warn">{v.issue}</span>}
       {v.issue && onOverride && <CodeForm onSubmit={(code) => onOverride(v.position.id, code)} />}
+      {onChart && v.quote?.schemeCode != null && (
+        <button type="button" class="link" aria-expanded={charted} onClick={onChart}>
+          {charted ? 'Hide NAV chart' : 'NAV chart'}
+        </button>
+      )}
     </td>
   );
 }
 
-export function OpenTable({ rows, onOverride }: { rows: ValuedPosition[]; onOverride: (id: string, code: number) => void }) {
+export function OpenTable({ rows, stale, onOverride }: { rows: ValuedPosition[]; stale: ReadonlySet<string>; onOverride: (id: string, code: number) => void }) {
+  const [charted, setCharted] = useState<string | null>(null);
   return (
     <div class="table-wrap">
       <table class="schemes">
@@ -59,8 +66,9 @@ export function OpenTable({ rows, onOverride }: { rows: ValuedPosition[]; onOver
         </thead>
         <tbody>
           {rows.map((v) => (
+            <>
             <tr key={v.position.id} class={v.value === null ? 'excluded' : ''}>
-              <SchemeCell v={v} onOverride={onOverride} />
+              <SchemeCell v={v} onOverride={onOverride} charted={charted === v.position.id} onChart={() => setCharted(charted === v.position.id ? null : v.position.id)} />
               <td data-label="Units" class="num">{formatUnits(v.position.units)}</td>
               <td data-label="Avg cost" class="num">{v.position.avgCost === null ? dash : formatRupees(v.position.avgCost)}</td>
               <td data-label="Invested" class="num">{formatRupees(v.position.invested)}</td>
@@ -70,6 +78,7 @@ export function OpenTable({ rows, onOverride }: { rows: ValuedPosition[]; onOver
                   <span class="sub">
                     NAV {formatRupees(v.quote.nav)} · {formatDate(v.quote.date)}
                     {v.quote.from === 'statement' && ' (statement)'}
+                    {stale.has(v.position.id) && <span class="badge" title="This NAV is older than the newest NAV in your portfolio">Older NAV</span>}
                   </span>
                 )}
               </td>
@@ -80,6 +89,14 @@ export function OpenTable({ rows, onOverride }: { rows: ValuedPosition[]; onOver
               <td data-label="Latest change" class={`num ${v.dayChange === null ? '' : trend(v.dayChange)}`}>{v.dayChange === null ? dash : formatSignedRupees(v.dayChange)}</td>
               <td data-label="XIRR" class="num">{v.xirr === null ? dash : formatPercent(v.xirr)}</td>
             </tr>
+            {charted === v.position.id && v.quote?.schemeCode != null && (
+              <tr class="chart-row">
+                <td colSpan={8}>
+                  <NavChart schemeCode={v.quote.schemeCode} trades={v.position.trades} />
+                </td>
+              </tr>
+            )}
+            </>
           ))}
         </tbody>
       </table>

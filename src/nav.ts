@@ -50,3 +50,28 @@ export const isSchemeCode = (input: string): boolean => /^\d{3,8}$/.test(input.t
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 4 });
 export const formatInr = (value: number): string => inr.format(value);
+
+export interface NavPoint {
+  /** ISO date. */
+  date: string;
+  nav: number;
+}
+
+interface HistoryPage {
+  data: { nav_date: string; nav: number }[];
+  total: number;
+}
+
+const HISTORY_PAGE_SIZE = 1000;
+
+/** Every NAV from `start` (ISO date) to today, oldest first. mfnav.in pages its history, so this follows the pages. */
+export async function getHistory(schemeCode: number, start: string): Promise<NavPoint[]> {
+  const points: NavPoint[] = [];
+  for (let page = 1; ; page++) {
+    const query = new URLSearchParams({ start_date: start, page_size: String(HISTORY_PAGE_SIZE), page: String(page) });
+    const body = await getJson<HistoryPage>(`/api/nav/${schemeCode}?${query}`);
+    points.push(...body.data.map((d) => ({ date: d.nav_date, nav: d.nav })));
+    if (body.data.length === 0 || points.length >= body.total) break;
+  }
+  return points.reverse();
+}

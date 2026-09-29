@@ -75,3 +75,10 @@ export function valuePortfolio(portfolio: Portfolio, quotes: ReadonlyMap<string,
     },
   };
 }
+
+/** Ids of open positions whose NAV is older than the newest live NAV in the portfolio, or is only the statement's own. */
+export function staleIds(open: readonly ValuedPosition[]): Set<string> {
+  const live = open.flatMap((v) => (v.quote?.from === 'mfnav' ? [v.quote.date] : []));
+  const newest = live.reduce((a, b) => (a > b ? a : b), '');
+  return new Set(open.filter((v) => v.quote && (v.quote.from === 'statement' || v.quote.date < newest)).map((v) => v.position.id));
+}

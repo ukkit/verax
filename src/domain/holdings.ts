@@ -20,6 +20,12 @@ export interface StatementNav {
   date: string;
 }
 
+/** A unit purchase or sale, for marking on a chart. */
+export interface Trade {
+  date: string;
+  side: 'buy' | 'sell';
+}
+
 export interface Position {
   /** Unique within a statement: folio id plus the scheme's position in that folio. */
   id: string;
@@ -37,6 +43,7 @@ export interface Position {
   /** Proceeds of every sale minus the FIFO cost of the units sold. Not a tax figure. */
   realised: number;
   flows: CashFlow[];
+  trades: Trade[];
   statementNav: StatementNav | null;
 }
 
@@ -67,6 +74,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
   if (scheme.open > UNIT_EPS) throw new IncompleteHistory('The statement starts with units already held, so their cost is unknown. Upload a statement from the first purchase.');
   const lots: Lot[] = [];
   const flows: CashFlow[] = [];
+  const trades: Trade[] = [];
   let realised = 0;
   let latest: Lot | undefined;
 
@@ -78,6 +86,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
       if (t.type === 'STAMP_DUTY_TAX' && latest) latest.cost += Math.abs(t.amount ?? 0);
       continue;
     }
+    trades.push({ date: t.date, side: t.units > 0 ? 'buy' : 'sell' });
     if (t.units > 0) {
       latest = { date: t.date, units: t.units, cost: Math.abs(t.amount ?? 0) };
       lots.push(latest);
@@ -118,6 +127,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
     avgCost: held ? invested / units : null,
     realised,
     flows,
+    trades,
     statementNav: nav !== null && date !== null ? { nav, date } : null,
   };
 }

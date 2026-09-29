@@ -7,14 +7,14 @@ import { mapLimit } from './pool';
 
 const fund = (code: number, over: Partial<Fund> = {}): Fund => ({ scheme_code: code, scheme_name: 'Sample Fund', fund_house: 'Sample', plan_type: 'Direct', option_type: 'Growth', isin: null, category: 'Equity', sub_category: null, latest_nav: 12.5, latest_nav_date: '2025-01-01', latest_day_change_pct: 0.5, ...over });
 const position = (id: string, over: Partial<Position> = {}): Position => ({
-  id, folioId: 'f1', amc: 'A', folioMasked: '••••1234', name: id, isin: `INF${id}`, units: 1, lots: [], invested: 10, avgCost: 10, realised: 0, flows: [], statementNav: { nav: 11, date: '2024-12-31' }, ...over,
+  id, folioId: 'f1', amc: 'A', folioMasked: '••••1234', name: id, isin: `INF${id}`, units: 1, lots: [], invested: 10, avgCost: 10, realised: 0, flows: [], trades: [], statementNav: { nav: 11, date: '2024-12-31' }, ...over,
 });
 const source = (over: Partial<NavSource> = {}): NavSource => ({ schemeCode: async () => 5, fund: async (c) => fund(c), ...over });
 
 describe('fetchQuotes', () => {
   it('quotes a position from mfnav.in by ISIN', async () => {
     const quotes = await fetchQuotes([position('a')], source());
-    expect(quotes.get('a')).toEqual({ quote: { nav: 12.5, date: '2025-01-01', dayChangePct: 0.5, from: 'mfnav' }, issue: null });
+    expect(quotes.get('a')).toEqual({ quote: { nav: 12.5, date: '2025-01-01', dayChangePct: 0.5, from: 'mfnav', schemeCode: 5, category: 'Equity' }, issue: null });
   });
 
   it('prefers a manual scheme code over the ISIN', async () => {
@@ -27,7 +27,7 @@ describe('fetchQuotes', () => {
 
   it('falls back to the statement NAV when the ISIN is unmapped, and says so', async () => {
     const quotes = await fetchQuotes([position('a')], source({ schemeCode: async () => null }));
-    expect(quotes.get('a')?.quote).toEqual({ nav: 11, date: '2024-12-31', dayChangePct: null, from: 'statement' });
+    expect(quotes.get('a')?.quote).toEqual({ nav: 11, date: '2024-12-31', dayChangePct: null, from: 'statement', schemeCode: null, category: null });
     expect(quotes.get('a')?.issue).toMatch(/no single fund.*statement.*scheme code/);
   });
 

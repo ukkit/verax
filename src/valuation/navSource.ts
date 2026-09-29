@@ -1,6 +1,7 @@
 // Live NAV lookups for the session: ISIN -> scheme code -> latest NAV. Every answer is cached by its key and concurrent
 // requests for one key share a single call. A failed call is never cached, so a retry asks again.
 import { getFund, searchFunds, type Fund } from '../nav';
+import { memoised } from './memo';
 
 export interface NavApi {
   searchFunds: (query: string) => Promise<{ results: Fund[] }>;
@@ -11,19 +12,6 @@ export interface NavSource {
   /** The scheme code for an ISIN, or null when mfnav.in has no single match. */
   schemeCode: (isin: string) => Promise<number | null>;
   fund: (schemeCode: number) => Promise<Fund>;
-}
-
-function memoised<K, V>(load: (key: K) => Promise<V>): (key: K) => Promise<V> {
-  const cache = new Map<K, Promise<V>>();
-  return (key) => {
-    let pending = cache.get(key);
-    if (!pending) {
-      pending = load(key);
-      cache.set(key, pending);
-      pending.catch(() => cache.delete(key));
-    }
-    return pending;
-  };
 }
 
 export const createNavSource = (api: NavApi = { searchFunds: (q) => searchFunds(q), getFund }): NavSource => ({

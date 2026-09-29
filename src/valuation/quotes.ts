@@ -14,6 +14,9 @@ export interface Quote {
   date: string;
   dayChangePct: number | null;
   from: 'mfnav' | 'statement';
+  /** mfnav.in scheme code and category; null for a statement NAV. */
+  schemeCode: number | null;
+  category: string | null;
 }
 
 export interface PositionQuote {
@@ -30,7 +33,7 @@ async function live(position: Position, source: NavSource, overrides: Overrides)
   if (code === null) throw new NavError(position.isin ? 'mfnav.in has no single fund for this ISIN.' : 'The statement gives no ISIN for this scheme.', 404);
   const fund = await source.fund(code);
   if (fund.latest_nav === undefined || !fund.latest_nav_date) throw new NavError('mfnav.in has no NAV for this fund yet.', 404);
-  return { nav: fund.latest_nav, date: fund.latest_nav_date, dayChangePct: fund.latest_day_change_pct ?? null, from: 'mfnav' };
+  return { nav: fund.latest_nav, date: fund.latest_nav_date, dayChangePct: fund.latest_day_change_pct ?? null, from: 'mfnav', schemeCode: code, category: fund.category || null };
 }
 
 export async function fetchQuotes(positions: readonly Position[], source: NavSource, overrides: Overrides = new Map()): Promise<Map<string, PositionQuote>> {
@@ -42,7 +45,7 @@ export async function fetchQuotes(positions: readonly Position[], source: NavSou
       if (error.status !== 404) console.error('nav_lookup_failed', { status: error.status });
       const fallback = position.statementNav;
       const advice = fallback ? 'Valued at the NAV printed on your statement. Enter a scheme code to fix this.' : 'Not valued. Enter a scheme code to fix this.';
-      return [position.id, { quote: fallback && { ...fallback, dayChangePct: null, from: 'statement' }, issue: `${error.message} ${advice}` }];
+      return [position.id, { quote: fallback && { ...fallback, dayChangePct: null, from: 'statement', schemeCode: null, category: null }, issue: `${error.message} ${advice}` }];
     }
   });
   return new Map(pairs);

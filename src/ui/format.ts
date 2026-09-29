@@ -9,3 +9,13 @@ export const formatRupees = (value: number): string => rupees.format(value);
 
 /** "2026-09-17" -> "17 Sept 2026" (whatever the locale prints for the month). */
 export const formatDate = (iso: string): string => day.format(new Date(`${iso}T00:00:00Z`));
+
+const signedRupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
+const percent = new Intl.NumberFormat('en-IN', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
+
+/** A rupee amount with an explicit sign, for gains and changes. */
+export const formatSignedRupees = (value: number): string => signedRupees.format(value);
+/** A fraction as a signed percentage (0.1234 -> "+12.34%"). */
+export const formatPercent = (fraction: number): string => percent.format(fraction);
+/** "up" or "down" for colouring a gain; nothing for zero. */
+export const trend = (value: number): string => (value > 0 ? 'chg up' : value < 0 ? 'chg down' : 'chg');

@@ -52,7 +52,7 @@ body {
 main {
   flex: 1;
   width: 100%;
-  max-width: 44rem;
+  max-width: 64rem;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -289,6 +289,12 @@ table.schemes th {
 table.schemes .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  /* Keeps a sign with its amount; the smaller lines underneath may still wrap. */
+  white-space: nowrap;
+}
+
+table.schemes .num .sub {
+  white-space: normal;
 }
 
 .sub {
@@ -316,7 +322,7 @@ table.schemes details ul {
   font-size: 0.85rem;
 }
 
-@media (max-width: 44rem) {
+@media (max-width: 60rem) {
   table.schemes thead {
     position: absolute;
     left: -9999px;
@@ -363,4 +369,87 @@ table.schemes details ul {
   table.schemes td[data-label='Scheme']::before {
     content: none;
   }
+}
+
+/* Profiles */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+}
+
+.tab {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.tab.current {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+/* Portfolio totals */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+}
+
+.totals > div {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.totals .lead {
+  border-color: var(--accent);
+}
+
+.totals dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.totals dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows that need attention, and the scheme-code field */
+.warn {
+  color: var(--down);
+}
+
+.override {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.override input {
+  flex: 0 1 9rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.override button {
+  padding: 0.35rem 0.75rem;
+}
+
+details.closed {
+  margin: 1.5rem 0 0;
+}
+
+details.closed summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }

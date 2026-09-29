@@ -2,7 +2,7 @@
 
 Name: **Verax** (Latin *verax*, "truthful"). Tagline: **"The true return on your funds."** Chosen 2026-09-29 after a naming exploration (English, Hindi/Sanskrit and invented Latin-root candidates); shortlisted alternatives were Cask, Tenax, Ganak and Freehold. Domain, GitHub and npm availability were deliberately not checked, so confirm them before publishing.
 
-Status: Milestones 1 and 2 done (parser validated on synthetic statements, in a real browser, and on two real CAMS statements) · Decisions confirmed (grilling session, Q1–Q24) · Date: 2026-09-29
+Status: Milestones 1 and 2 done, milestone 3 built and awaiting its real-statement check (parser validated on synthetic statements, in a real browser, and on two real CAMS statements) · Decisions confirmed (grilling session, Q1–Q24) · Date: 2026-09-29
 
 ## Progress (2026-09-29)
 
@@ -10,7 +10,7 @@ Status: Milestones 1 and 2 done (parser validated on synthetic statements, in a 
 |---|---|---|---|
 | 1 | Scaffold, shared proxy, three hosts, CI, PII guard | **Done** | Smoke tests on the local server and Cloudflare's runtime; not yet deployed on either host |
 | 2 | Statement parser, worker, upload UI, reconciliation | **Done** | 194 tests; 22 browser checks; 1,636 of 1,636 real transactions matched casparser; privacy check clean |
-| 3 | Holdings (FIFO), XIRR, live NAV valuation, closed positions, profiles | **Next** | See §10 |
+| 3 | Holdings (FIFO), XIRR, live NAV valuation, closed positions, profiles | **Built; real-statement check pending** | 229 tests; browser run (profiles, override, replace, remove, no external requests, no console errors); `tools/valuation-check` still to be run on real statements (`docs/valuation-check.md`) |
 | 4 | Charts, transaction view, stale-NAV badge, polish | Not started | |
 | 5 | Encrypted "Remember on this device", auto-lock | Not started | |
 
@@ -183,7 +183,7 @@ Threat model: protects against repo/CDN leaks, server/log compromise, network sn
 ## 10. Milestones (each shippable)
 1. **Done (2026-09-29, local verification).** Scaffold + shared proxy core + Cloudflare, Vercel and local wrappers; "look up a NAV" page; `smoke.sh`; CI with typecheck, tests, audit, PII scan; pre-commit PII hook. Verified: 48 unit tests; smoke test passes against the local server and Cloudflare's local runtime (Wrangler) with live mfnav.in; headless Chromium run shows no CSP violations and zero external requests. **Not yet verified:** a real deploy on Cloudflare Pages and Vercel (the Vercel wrapper and gate are unit-tested only, since `vercel dev` needs a login); run `scripts/smoke.sh <url>` after the first deploy on each.
 2. **Done (2026-09-29, synthetic + browser verification).** Parser in `src/parser/` (TypeScript port of casparser), Web Worker, upload/unlock UI with per-scheme summary, reconciliation flags and the KFintech beta notice. Verified: 194 tests in total, including the real pdf.js on a generated PDF; a headless Chromium run (22 checks) on both the local server and Cloudflare's runtime: upload, banners, encrypted PDF (missing, wrong, right password), NSDL refusal, no request leaving the origin, no console errors. **Real-statement check passed (2026-09-29):** on two real CAMS statements (37 and 30 schemes) the parser matched casparser on 1,636 of 1,636 transactions with 0 missing and 0 extra, all transaction types, closing balances, valuation lines, ISINs, scheme names and folio last-four agreed, the reconcile flags agreed, and the source was detected as CAMS. The privacy check first found 53 and 19 runs of 8+ digits (payment references in descriptions); after masking them it is clean.
-3. **Next.** Holdings (FIFO lots, average cost derived), XIRR (Newton with bisection fallback; closed folios included), live NAV valuation via mfnav.in by ISIN (cached, stale-NAV badge, manual scheme-code override for unmapped funds), closed positions in a collapsed section with realised gain, and several profiles kept separate. Builds on `Statement` from milestone 2; only reconciled schemes enter totals. Acceptance: total value within 0.1% of the statement's own valuation, allowing for NAV date differences, checked on the real statements with a tool like `tools/parser-oracle`.
+3. **Built (2026-09-29), real-statement check pending.** Holdings (FIFO lots, average cost derived), XIRR (Newton with bisection fallback; closed folios included), live NAV valuation via mfnav.in by ISIN (cached, stale-NAV badge, manual scheme-code override for unmapped funds), closed positions in a collapsed section with realised gain, and several profiles kept separate. Builds on `Statement` from milestone 2; only reconciled schemes enter totals. Acceptance: total value within 0.1% of the statement's own valuation, allowing for NAV date differences, checked on the real statements with a tool like `tools/parser-oracle`.
 4. Charts (per-fund NAV, allocation), transaction view, stale-NAV badge, footer, polish.
 5. Encrypted "Remember on this device" + auto-lock.
 

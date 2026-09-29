@@ -14,7 +14,15 @@ export interface Lot {
   cost: number;
 }
 
+/** The NAV the statement itself printed for a scheme, used until a live NAV is available. */
+export interface StatementNav {
+  nav: number;
+  date: string;
+}
+
 export interface Position {
+  /** Unique within a statement: folio id plus the scheme's position in that folio. */
+  id: string;
   folioId: string;
   amc: string;
   folioMasked: string;
@@ -29,6 +37,7 @@ export interface Position {
   /** Proceeds of every sale minus the FIFO cost of the units sold. Not a tax figure. */
   realised: number;
   flows: CashFlow[];
+  statementNav: StatementNav | null;
 }
 
 export interface Excluded {
@@ -54,7 +63,7 @@ const cashOf = (t: Transaction): number => (PAID_IN.has(t.type) ? -Math.abs(t.am
 
 class IncompleteHistory extends Error {}
 
-function buildPosition(folio: { id: string; amc: string; folioMasked: string }, scheme: Scheme): Position {
+function buildPosition(folio: { id: string; amc: string; folioMasked: string }, scheme: Scheme, index: number): Position {
   if (scheme.open > UNIT_EPS) throw new IncompleteHistory('The statement starts with units already held, so their cost is unknown. Upload a statement from the first purchase.');
   const lots: Lot[] = [];
   const flows: CashFlow[] = [];
@@ -95,7 +104,9 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
   const units = lots.reduce((sum, lot) => sum + lot.units, 0);
   const held = units > UNIT_EPS;
   const invested = held ? lots.reduce((sum, lot) => sum + lot.cost, 0) : 0;
+  const { nav, date } = scheme.valuation;
   return {
+    id: `${folio.id}:${index}`,
     folioId: folio.id,
     amc: folio.amc,
     folioMasked: folio.folioMasked,
@@ -107,6 +118,7 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
     avgCost: held ? invested / units : null,
     realised,
     flows,
+    statementNav: nav !== null && date !== null ? { nav, date } : null,
   };
 }
 
@@ -114,14 +126,14 @@ function buildPosition(folio: { id: string; amc: string; folioMasked: string }, 
 export function buildPortfolio(statement: Statement): Portfolio {
   const portfolio: Portfolio = { open: [], closed: [], excluded: [] };
   for (const folio of statement.folios) {
-    for (const scheme of folio.schemes) {
+    for (const [index, scheme] of folio.schemes.entries()) {
       const who = { folioId: folio.id, amc: folio.amc, folioMasked: folio.folioMasked, name: scheme.name };
       if (!scheme.reconciled) {
         portfolio.excluded.push({ ...who, reason: 'The statement’s unit balances do not add up for this scheme.' });
         continue;
       }
       try {
-        const position = buildPosition(folio, scheme);
+        const position = buildPosition(folio, scheme, index);
         (position.units > 0 ? portfolio.open : portfolio.closed).push(position);
       } catch (error) {
         if (!(error instanceof IncompleteHistory)) throw error;

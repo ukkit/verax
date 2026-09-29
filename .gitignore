@@ -22,3 +22,5 @@ CLAUDE.md
 # Parser oracle tool: raw output holds financial data
 tools/parser-oracle/out/
 tools/parser-oracle/.venv/
+# Valuation check: build output only, but keep it out of commits
+tools/valuation-check/out/

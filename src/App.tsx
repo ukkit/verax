@@ -60,9 +60,14 @@ export function App() {
   return (
     <>
       <main>
-        <h1>Verax</h1>
-        <p class="tagline">The true return on your funds.</p>
-        <p class="lede">Open your CAS to see what it holds. Your statement is read in this browser and never leaves your device.</p>
+        <div class="masthead">
+          <h1>
+            <img src="/favicon.svg" alt="" width="28" height="28" />
+            Verax
+          </h1>
+          <p class="tagline">The true return on your mutual funds.</p>
+        </div>
+        <p class="lede">Import your CAS (Consolidated Account Statement) to see what it holds. Your statement is read in this browser and never leaves your device.</p>
         <VaultBar
           status={vault.status}
           problem={vault.problem}

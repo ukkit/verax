@@ -1,10 +1,20 @@
-# Verax
+# <img src="public/favicon.svg" alt="" width="32" height="32" align="absmiddle" /> Verax
 
-**The true return on your funds.**
+**The true return on your mutual funds.**
 
-Verax is a mutual fund portfolio dashboard for India. It reads your CAS (Consolidated Account Statement) PDF in your
-browser and values your holdings with live NAVs from [mfnav.in](https://mfnav.in). It has no database or accounts, and
-your statement is never uploaded. The name is Latin for "truthful".
+Verax is a (India based) mutual fund portfolio dashboard. It reads your CAS (Consolidated Account Statement) PDF in your browser and values your holdings with live NAVs from [mfnav.in](https://mfnav.in). It has no database or accounts, and your statement is never uploaded. The name is Latin for "truthful".
+
+## Screenshots
+
+All screenshots use a synthetic statement (an invented investor, folios and amounts) with real public schemes and live NAVs.
+
+![Import screen](docs/screenshots/landing.png)
+
+![Portfolio: totals and holdings per fund](docs/screenshots/portfolio.png)
+
+![Invested against value over the years, for the whole portfolio](docs/screenshots/value-chart.png)
+
+![NAV chart of one fund, with purchases as circles and a sale as a diamond](docs/screenshots/nav-chart.png)
 
 ## What it does
 
@@ -15,10 +25,8 @@ your statement is never uploaded. The name is Latin for "truthful".
 - Shows value, invested amount (FIFO), gain, day change and XIRR per fund and for the whole portfolio, with closed
   positions included in the return and kept in their own section.
 - Keeps several profiles separate, draws a NAV chart per fund with your purchases and sales marked, charts what you invested
-  against what it was worth over the years (on request, from the NAV history or the statement's own NAVs), and lists every transaction with filters.
+  against its value over the years (on request, from the NAV history or the statement's own NAVs), and lists every transaction with filters.
 - Optionally remembers your statements on the device, encrypted with a passphrase, and locks itself when idle.
-
-See the [PRD](docs/PRD.md) for the plan and decisions.
 
 ## Deploy to Vercel
 

@@ -8,6 +8,8 @@ import { navSource } from '../valuation/session';
 import { formatCompactRupees, formatDate, formatRupees } from './format';
 
 const BOX: Box = { width: 1000, height: 320, left: 64, bottom: 30, pad: 14 };
+/** Pixels kept clear of year labels after the left edge, where the start date is printed (about 12 characters at 11px). */
+const START_LABEL_CLEARANCE = 100;
 
 type State =
   | { phase: 'idle' }
@@ -40,12 +42,12 @@ export function ValueChart({ positions, quotes }: { positions: readonly Position
 
   return (
     <section class="value-chart" aria-labelledby="value-heading">
-      <h3 id="value-heading">Invested and worth over the years</h3>
+      <h3 id="value-heading">Invested and Value over the years</h3>
       {state.phase === 'idle' && (
         <>
           <p class="hint">Loads each fund’s NAV history (a few dozen requests for a large portfolio, so it takes a little while). Closed funds are included, because you held them then.</p>
-          <button type="button" class="secondary" onClick={load}>
-            Show over time
+          <button type="button" onClick={load}>
+            Show Chart
           </button>
         </>
       )}
@@ -62,31 +64,31 @@ export function ValueChart({ positions, quotes }: { positions: readonly Position
       {state.phase === 'ready' && !plotted && state.left.length === 0 && <p class="msg">There is no history to draw for these funds yet.</p>}
       {state.phase === 'ready' && plotted && last && (
         <>
-          <svg viewBox={`0 0 ${BOX.width} ${BOX.height}`} role="img" aria-label={`Invested ${formatRupees(last.invested)} and worth ${formatRupees(last.value)} on ${formatDate(last.date)}, from ${formatDate(plotted.from)}`}>
+          <svg viewBox={`0 0 ${BOX.width} ${BOX.height}`} role="img" aria-label={`Invested ${formatRupees(last.invested)} and value ${formatRupees(last.value)} on ${formatDate(last.date)}, from ${formatDate(plotted.from)}`}>
             <text x={BOX.left - 6} y={BOX.pad + 4} text-anchor="end" class="axis">{formatCompactRupees(plotted.max)}</text>
             <text x={BOX.left - 6} y={BOX.height - BOX.bottom} text-anchor="end" class="axis">₹0</text>
             <line x1={BOX.left} x2={BOX.width - BOX.pad} y1={BOX.height - BOX.bottom} y2={BOX.height - BOX.bottom} class="grid" />
             <text x={BOX.left} y={BOX.height - 8} class="axis">{formatDate(plotted.from)}</text>
-            {yearTicks(plotted.from, plotted.to, BOX).map((t) => (
+            {yearTicks(plotted.from, plotted.to, BOX, 8, START_LABEL_CLEARANCE).map((t) => (
               <text key={t.label} x={t.x} y={BOX.height - 8} text-anchor="middle" class="axis">{t.label}</text>
             ))}
             <polyline class="line-value" fill="none" points={plotted.lines[1]!.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} />
             <polyline class="line-invested" fill="none" points={plotted.lines[0]!.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} />
             {state.points.map((p, i) => (
               <circle key={p.date} cx={plotted.lines[1]![i]!.x} cy={plotted.lines[1]![i]!.y} r="5" class="hit">
-                <title>{`${formatDate(p.date)}: invested ${formatRupees(p.invested)}, worth ${formatRupees(p.value)}`}</title>
+                <title>{`${formatDate(p.date)}: invested ${formatRupees(p.invested)}, value ${formatRupees(p.value)}`}</title>
               </circle>
             ))}
           </svg>
           <p class="hint">
-            <span class="dot value" /> worth then <span class="dot invested" /> invested (cost of the units held). Today: {formatRupees(last.value)} worth, {formatRupees(last.invested)} invested.
+            <span class="dot value" /> value then <span class="dot invested" /> invested (cost of the units held). Today: {formatRupees(last.value)} value, {formatRupees(last.invested)} invested.
           </p>
         </>
       )}
       {state.phase === 'ready' && state.approximate.length > 0 && (
         <div class="banner" role="status">
           <strong>
-            {state.approximate.length} {state.approximate.length === 1 ? 'fund is' : 'funds are'} drawn from the NAVs on your statement, so the worth line is approximate.
+            {state.approximate.length} {state.approximate.length === 1 ? 'fund is' : 'funds are'} drawn from the NAVs on your statement, so the value line is approximate.
           </strong>{' '}
           Their NAV history could not be loaded, so each is valued at the NAV of its latest transaction and stays flat until the next one.
           <ul>

@@ -107,14 +107,16 @@ export function plotLines(series: readonly (readonly LinePoint[])[], box: Box): 
   };
 }
 
-/** Year labels for the x axis: each 1 January inside (from, to), thinned to at most `most`. */
-export function yearTicks(from: string, to: string, box: Box, most = 8): { label: string; x: number }[] {
+/** Year labels for the x axis: each 1 January inside (from, to) and at least `clearLeft` px right of the left edge (where the
+ *  start date is printed), thinned to at most `most`. */
+export function yearTicks(from: string, to: string, box: Box, most = 8, clearLeft = 0): { label: string; x: number }[] {
   const x0 = day(from);
   const span = Math.max(day(to) - x0, 1);
-  const years: number[] = [];
-  for (let y = Number(from.slice(0, 4)) + 1; `${y}-01-01` < to; y++) years.push(y);
-  const every = Math.max(1, Math.ceil(years.length / most));
-  return years
-    .filter((_, i) => i % every === 0)
-    .map((y) => ({ label: String(y), x: box.left + ((day(`${y}-01-01`) - x0) / span) * (box.width - box.left - box.pad) }));
+  const ticks: { label: string; x: number }[] = [];
+  for (let y = Number(from.slice(0, 4)) + 1; `${y}-01-01` < to; y++) {
+    const x = box.left + ((day(`${y}-01-01`) - x0) / span) * (box.width - box.left - box.pad);
+    if (x - box.left >= clearLeft) ticks.push({ label: String(y), x });
+  }
+  const every = Math.max(1, Math.ceil(ticks.length / most));
+  return ticks.filter((_, i) => i % every === 0);
 }

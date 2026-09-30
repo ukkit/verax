@@ -63,6 +63,11 @@ describe('yearTicks', () => {
     expect(yearTicks('2024-02-01', '2024-11-01', wide)).toEqual([]);
   });
 
+  it('skips a year too close to the left edge, where the start date is printed', () => {
+    expect(yearTicks('2023-11-06', '2026-09-29', wide, 8, 100).map((t) => t.label)).toEqual(['2025', '2026']);
+    expect(yearTicks('2023-11-06', '2026-09-29', wide).map((t) => t.label)).toEqual(['2024', '2025', '2026']);
+  });
+
   it('places a tick by its date', () => {
     const [tick] = yearTicks('2023-01-01', '2025-01-01', { ...wide, width: 731 }, 8);
     expect(tick!.label).toBe('2024');

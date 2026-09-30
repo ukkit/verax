@@ -36,11 +36,14 @@ export function NavChart({ schemeCode, trades }: { schemeCode: number; trades: T
             <text x={BOX.width - BOX.pad} y={BOX.height - 8} text-anchor="end" class="axis">{formatDate(drawn.to)}</text>
             <line x1={BOX.left} x2={BOX.width - BOX.pad} y1={BOX.height - BOX.bottom} y2={BOX.height - BOX.bottom} class="grid" />
             <polyline class="nav-line" fill="none" points={drawn.line.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} />
-            {drawn.markers.map((m, i) => (
-              <circle key={i} cx={m.x} cy={m.y} r="4.5" class={m.side === 'buy' ? 'mark buy' : 'mark sell'}>
-                <title>{`${m.side === 'buy' ? 'Bought' : 'Sold'} on ${formatDate(m.date)}, NAV ${formatRupees(m.nav)}`}</title>
-              </circle>
-            ))}
+            {drawn.markers.map((m, i) => {
+              const title = <title>{`${m.side === 'buy' ? 'Bought' : 'Sold'} on ${formatDate(m.date)}, NAV ${formatRupees(m.nav)}`}</title>;
+              return m.side === 'buy' ? (
+                <circle key={i} cx={m.x} cy={m.y} r="4.5" class="mark buy">{title}</circle>
+              ) : (
+                <rect key={i} x={m.x - 4} y={m.y - 4} width="8" height="8" transform={`rotate(45 ${m.x} ${m.y})`} class="mark sell">{title}</rect>
+              );
+            })}
           </svg>
           <p class="hint">
             <span class="dot buy" /> purchase <span class="dot sell" /> sale

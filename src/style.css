@@ -25,13 +25,13 @@
   --border: #d8dedc;
   --accent: #0f766e;
   --accent-text: #ffffff;
-  --up: #15803d;
-  --down: #b91c1c;
+  --up: #0072b2;
+  --down: #b34700;
   --warn-bg: #fdecec;
   --note-bg: #eef6f5;
   /* Chart lines. White and yellow are for the dark theme; on the light page they become dark ink and amber so they stay visible. */
   --line-invested: #17201e;
-  --line-worth: #ca8a04;
+  --line-worth: #a16207;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,8 +43,8 @@
     --border: #2b3836;
     --accent: #2dd4bf;
     --accent-text: #06231f;
-    --up: #4ade80;
-    --down: #f87171;
+    --up: #56b4e9;
+    --down: #f0a030;
     --warn-bg: #3a1f1f;
     --note-bg: #16302d;
     --line-invested: #ffffff;
@@ -78,14 +78,27 @@ main {
   padding: 2rem 1rem;
 }
 
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
 h1 {
-  margin: 0 0 0.25rem;
+  margin: 0;
   font-size: 1.6rem;
 }
 
+h1 img {
+  margin-right: 0.5rem;
+  vertical-align: -0.2em;
+}
+
 .tagline {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent);
 }
@@ -250,7 +263,7 @@ button.secondary {
 table.schemes {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 table.schemes th,
@@ -262,7 +275,7 @@ table.schemes td {
 }
 
 table.schemes th {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--muted);
 }
@@ -280,7 +293,7 @@ table.schemes .num .sub {
 
 .sub {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--muted);
 }
 
@@ -300,7 +313,7 @@ tr.excluded {
 table.schemes details ul {
   margin: 0.5rem 0 0;
   padding-left: 1.1rem;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 @media (max-width: 60rem) {
@@ -337,7 +350,7 @@ table.schemes details ul {
   table.schemes td::before {
     content: attr(data-label);
     flex: none;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--muted);
     text-align: left;
   }
@@ -487,6 +500,12 @@ details.closed summary {
 .dot.sell {
   fill: var(--down);
   background: var(--down);
+}
+
+/* Sales are diamonds and purchases circles, so the two never rely on colour alone. */
+.dot.sell {
+  border-radius: 0;
+  transform: rotate(45deg);
 }
 
 .dot {

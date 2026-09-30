@@ -1,8 +1,8 @@
 {
   "name": "verax",
-  "version": "0.1790732682.0",
+  "version": "0.1790733000.0",
   "private": true,
-  "description": "Verax: the true return on your funds. Reads a CAS PDF in the browser and values it with live NAVs from mfnav.in",
+  "description": "Free, privacy-first mutual fund portfolio tracker for India. Import your CAMS or KFintech CAS PDF and get live NAV valuation, XIRR, gain and NAV charts. Runs entirely in your browser, with no account and no upload.",
   "license": "MIT",
   "type": "module",
   "engines": {

@@ -1,6 +1,6 @@
 {
   "name": "verax",
-  "version": "0.1790733000.0",
+  "version": "0.1791516081.0",
   "private": true,
   "description": "Free, privacy-first mutual fund portfolio tracker for India. Import your CAMS or KFintech CAS PDF and get live NAV valuation, XIRR, gain and NAV charts. Runs entirely in your browser, with no account and no upload.",
   "license": "MIT",

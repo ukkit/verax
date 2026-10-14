@@ -40,8 +40,12 @@ The button needs no terminal. Vercel asks you to sign up or log in, copies the c
 GitLab or Bitbucket account (so one of those logins is required), then builds and deploys it. `SITE_USER` and
 `SITE_PASS` are optional: fill both to password-protect the site (see the notes below). **If you leave them blank, your site's URL is
 public**, so anyone who has the address can open it and use your Vercel quota. Your statement is not stored on Vercel: it is parsed in your
-browser and discarded when you close the tab, unless you choose "Remember on this device", which keeps it encrypted on that device only. The copy is not a fork, so
-it does not receive later changes from this repository; merge them yourself. The known issue under "Notes for Vercel" applies.
+browser and discarded when you close the tab, unless you choose "Remember on this device", which keeps it encrypted on that device only. The known issue under
+"Notes for Vercel" applies.
+
+**The button gives you a one-time copy that does not receive updates.** It is a new repository, not a fork, so GitHub's Sync
+fork button is not available and fixes made here never reach it. To get updates, fork this repository instead and import the
+fork in Vercel (see [Vercel, from GitHub](#vercel-from-github)).
 
 ### Option 2: Command line
 

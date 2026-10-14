@@ -49,6 +49,8 @@ describe('Vercel optional gate (middleware.ts)', () => {
   });
 
   it('is a no-op when SITE_USER / SITE_PASS are not set', async () => {
+    vi.stubEnv('SITE_USER', '');
+    vi.stubEnv('SITE_PASS', '');
     const { default: middleware } = await import('../middleware');
     expect((await middleware(req())).status).not.toBe(401);
   });

@@ -28,10 +28,25 @@ All screenshots use a synthetic statement (an invented investor, folios and amou
   against its value over the years (on request, from the NAV history or the statement's own NAVs), and lists every transaction with filters.
 - Optionally remembers your statements on the device, encrypted with a passphrase, and locks itself when idle.
 
-## Deploy to Vercel
+## Deploying to Vercel
 
-This is the route that has been tried on this project. It needs Node 24 on your computer and a free Vercel account. An email
-address is enough for the account, and cloning the public repository needs no login.
+Two ways: the one-click button (no terminal) or the command line.
+
+### Option 1: One-click button
+
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ukkit/verax&project-name=verax&repository-name=verax&env=SITE_USER,SITE_PASS&envDescription=Optional%3A%20fill%20both%20to%20password-protect%20the%20site.%20If%20left%20blank%2C%20the%20site%20URL%20is%20public&envLink=https://github.com/ukkit/verax%23deploying-to-vercel)
+
+The button needs no terminal. Vercel asks you to sign up or log in, copies the code into a new repository on your GitHub,
+GitLab or Bitbucket account (so one of those logins is required), then builds and deploys it. `SITE_USER` and
+`SITE_PASS` are optional: fill both to password-protect the site (see the notes below). **If you leave them blank, your site's URL is
+public**, so anyone who has the address can open it and use your Vercel quota. Your statement is not stored on Vercel: it is parsed in your
+browser and discarded when you close the tab, unless you choose "Remember on this device", which keeps it encrypted on that device only. The copy is not a fork, so
+it does not receive later changes from this repository; merge them yourself. The known issue under "Notes for Vercel" applies.
+
+### Option 2: Command line
+
+This is the route that has been tried on this project. It needs Node 24 on your computer and a free
+Vercel account. An email address is enough for the account, and cloning the public repository needs no login.
 
 ```bash
 git clone https://github.com/ukkit/verax
@@ -62,7 +77,7 @@ Check the deployment from the repository folder:
 scripts/smoke.sh https://your-site.vercel.app       # add SMOKE_AUTH='user:pass' if the site is gated
 ```
 
-Notes for Vercel:
+### Notes for Vercel (both options)
 
 - The proxy is `api/proxy.ts`, reached through a rewrite in `vercel.json` (Vercel routes a catch-all file only one path
   segment). Security headers, the build command and the function region (`bom1`, Mumbai; change `regions` in `vercel.json`
@@ -122,8 +137,8 @@ Add another `--project-name` if `verax` is taken. To update, rebuild and run the
 ### Vercel, from GitHub
 
 Fork this repository, then in Vercel choose Add New, then Project, and import your fork. Every push to your fork redeploys.
-Your Vercel login needs a GitHub connection for the account that owns the fork. Vercel also offers a Deploy button, which
-copies the code into a new repository that is not a fork and so does not receive later changes from this one.
+Your Vercel login needs a GitHub connection for the account that owns the fork. The Deploy button at the top of
+[Deploying to Vercel](#deploying-to-vercel) copies the code instead, so it does not receive later changes from this repository.
 
 ## Privacy in one paragraph
 
